@@ -13,6 +13,7 @@ import sys
 import subprocess
 import configparser
 import time
+import os
 
 # check syntax and arguments
 if (len(sys.argv) < 1 or len(sys.argv) > 2):
@@ -22,29 +23,69 @@ if (len(sys.argv) < 1 or len(sys.argv) > 2):
 DEVICE_ORIGIN_TO_REBOOT = (sys.argv[1])
 
 
-# read config
-def ConfigSectionMap(SECTION):
-    CONFIGITEM = {}
-    OPTIONS = CONFIG.options(SECTION)
-    for OPTION in OPTIONS:
+conf_file = os.path.join(os.path.dirname(__file__), "configs", "config.ini")
+if not os.path.isfile(conf_file):
+    print('"{}" does not exist'.format(conf_file))
+
+class ConfigItem(object):
+    adb_path = None
+    adb_port = None
+    mitm_receiver_ip = None
+    mitm_receiver_port = None
+    poweroff = None
+    poweron = None
+    devices = []
+
+    def __init__(self, config):
+        self.config = config
+        self._set_data()
+
+    def list_adb_connected_devices(self):
+        global connectedDevices
+        cmd =  "{}/adb devices | /bin/grep {}".format(self.adb_path, self.adb_port)
         try:
-            CONFIGITEM[OPTION] = CONFIG.get(SECTION, OPTION)
-            if CONFIGITEM[OPTION] == -1:
-                DebugPrint("skip: %s" % OPTION)
-        except:
-            print("exception on %s!" % OPTION)
-            CONFIGITEM[OPTION] = None
-    return CONFIGITEM
+            connectedDevices = subprocess.check_output([cmd], shell=True)
+            connectedDevices = str(connectedDevices).replace("b'", "").replace("\\n'", "").replace(":5555", "").replace(
+                "\\n", ",").replace("\\tdevice", "").split(",")
+        except subprocess.CalledProcessError:
+            connectedDevices = "no devices connected"
+
+    def connect_device(self, DEVICE_ORIGIN_TO_REBOOT):
+        cmd = "{}/" + "adb connect {}".format(self.adb_path, dictDEVICELIST[DEVICE_ORIGIN_TO_REBOOT])
+        try:
+            subprocess.check_output([cmd], shell=True)
+        except subprocess.CalledProcessError:
+            print("Connection failed")
+        # Wait for 2 seconds
+        time.sleep(2)
+
+    def reboot_device(self, DEVICE_ORIGIN_TO_REBOOT):
+        cmd = self.adb_path + "/" + "adb -s " + dictDEVICELIST[DEVICE_ORIGIN_TO_REBOOT] + ":" + self.adb_port + " reboot"
+        try:
+            subprocess.check_output([cmd], shell=True)
+        except subprocess.CalledProcessError:
+            self.reboot_device_via_power(DEVICE_ORIGIN_TO_REBOOT)
+
+    def reboot_device_via_power(self, DEVICE_ORIGIN_TO_REBOOT):
+        print(self.poweroff)
+        time.sleep(5)
+        print(self.poweron)
+
+    def _set_data(self):
+        for section in self.config.sections():
+            for option in self.config.options(section):
+                if section == 'Devices':
+                    self.devices.append(self.config.get(section, option))
+                else:
+                    self.__setattr__(option, self.config.get(section, option))
 
 
 CONFIG = configparser.ConfigParser()
-CONFIG.read("configs/config.ini")
-ADB_PATH = ConfigSectionMap("Enviroment")['adb_path']
-ADB_PORT = ConfigSectionMap("Enviroment")['adb_port']
-MITM_RECEIVER_IP = ConfigSectionMap("MAD server")['mitm_receiver_ip']
-MITM_RECEIVER_PORT = ConfigSectionMap("MAD server")['mitm_receiver_port']
-PowerONcmd = int(ConfigSectionMap("PowerSwitchCommands")['poweron'])
-PowerOFFcmd = int(ConfigSectionMap("PowerSwitchCommands")['poweroff'])
+CONFIG.read(conf_file)
+
+conf_item = ConfigItem(CONFIG)
+
+
 
 DEVICELIST = []
 actDeviceConfig = 0
@@ -61,54 +102,22 @@ else:
     dictDEVICELIST = dict(DEVICELIST)
 
 
-def list_adb_connected_devices():
-    global connectedDevices
-    cmd = ADB_PATH + "/" + "adb devices | /bin/grep " + ADB_PORT
-    try:
-        connectedDevices = subprocess.check_output([cmd], shell=True)
-        connectedDevices = str(connectedDevices).replace("b'", "").replace("\\n'", "").replace(":5555", "").replace(
-            "\\n", ",").replace("\\tdevice", "").split(",")
-    except subprocess.CalledProcessError:
-        connectedDevices = "no devices connected"
 
-
-def connect_device(DEVICE_ORIGIN_TO_REBOOT):
-    cmd = ADB_PATH + "/" + "adb connect " + dictDEVICELIST[DEVICE_ORIGIN_TO_REBOOT]
-    try:
-        subprocess.check_output([cmd], shell=True)
-    except subprocess.CalledProcessError:
-        print("Connection failed")
-    # Wait for 2 seconds
-    time.sleep(2)
-
-
-def reboot_device(DEVICE_ORIGIN_TO_REBOOT):
-    cmd = ADB_PATH + "/" + "adb -s " + dictDEVICELIST[DEVICE_ORIGIN_TO_REBOOT] + ":" + ADB_PORT + " reboot"
-    try:
-        subprocess.check_output([cmd], shell=True)
-    except subprocess.CalledProcessError:
-        reboot_device_via_power(DEVICE_ORIGIN_TO_REBOOT)
-
-
-def reboot_device_via_power(DEVICE_ORIGIN_TO_REBOOT):
-    print(PowerOFFcmd)
-    time.sleep(5)
-    print(PowerONcmd)
 
 
 # Do reboot of device
 TRY_COUNTER = 5
 COUNTER = 0
 while COUNTER < TRY_COUNTER:
-    list_adb_connected_devices()
+    conf_item.list_adb_connected_devices()
     if dictDEVICELIST[DEVICE_ORIGIN_TO_REBOOT] in connectedDevices:
-        reboot_device(DEVICE_ORIGIN_TO_REBOOT)
+        conf_item.reboot_device(DEVICE_ORIGIN_TO_REBOOT)
         break;
     else:
-        connect_device(DEVICE_ORIGIN_TO_REBOOT)
+        conf_item.connect_device(DEVICE_ORIGIN_TO_REBOOT)
         COUNTER = COUNTER + 1
 else:
-    reboot_device_via_power(DEVICE_ORIGIN_TO_REBOOT)
+    conf_item.reboot_device_via_power(DEVICE_ORIGIN_TO_REBOOT)
 
 # exit
 sys.exit(0)
