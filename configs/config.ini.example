@@ -1,0 +1,23 @@
+######################################################
+#                                                    #
+#      Configuration file for RebootMadDevice        #
+#                                                    #
+######################################################
+
+[Enviroment]
+ADB_PATH: /usr/bin
+ADB_PORT: 5555
+
+[MAD server]
+MITM_RECEIVER_IP: 127.0.0.1
+MITM_RECEIVER_PORT: 8000
+
+[Devices]
+ANZAHL_DEVICES = x
+DEVICE_0: (<ORINGIN_DEVICE_0>;<IP_ADRESS_DEVICE_0>)
+DEVICE_1: (<ORINGIN_DEVICE_1>;<IP_ADRESS_DEVICE_1>)
+DEVICE_xx: (<ORINGIN_DEVICE_xx>;<IP_ADRESS_DEVICE_xx>)
+
+[PowerSwitchCommands]
+PowerON: http://<IPADRESS_POWER_SWITCH>/<PowerONcommand>
+PowerOFF: http://<IPADRESS_POWER_SWITCH>/<PowerOFFcommand>
