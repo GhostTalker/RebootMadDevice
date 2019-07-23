@@ -30,23 +30,23 @@ class ConfigItem(object):
     mitm_receiver_port = None
     poweroff = None
     poweron = None
-    devices = []
+    devices = {}
 
     def __init__(self):
         self._set_data()
 
     def list_adb_connected_devices(self):
-        global connectedDevices
         cmd = "{}/adb devices | /bin/grep {}".format(self.adb_path, self.adb_port)
         try:
             connectedDevices = subprocess.check_output([cmd], shell=True)
             connectedDevices = str(connectedDevices).replace("b'", "").replace("\\n'", "").replace(":5555", "").replace(
                 "\\n", ",").replace("\\tdevice", "").split(",")
         except subprocess.CalledProcessError:
-            connectedDevices = "no devices connected"
+            connectedDevices = None
+        return connectedDevices
 
     def connect_device(self, DEVICE_ORIGIN_TO_REBOOT):
-        cmd = "{}/" + "adb connect {}".format(self.adb_path, dictDEVICELIST[DEVICE_ORIGIN_TO_REBOOT])
+        cmd = "{}/" + "adb connect {}".format(self.adb_path, self.devices[DEVICE_ORIGIN_TO_REBOOT])
         try:
             subprocess.check_output([cmd], shell=True)
         except subprocess.CalledProcessError:
@@ -55,8 +55,7 @@ class ConfigItem(object):
         time.sleep(2)
 
     def reboot_device(self, DEVICE_ORIGIN_TO_REBOOT):
-        cmd = self.adb_path + "/" + "adb -s " + dictDEVICELIST[
-            DEVICE_ORIGIN_TO_REBOOT] + ":" + self.adb_port + " reboot"
+        cmd = "{}/" + "adb -s {}:{} reboot".format(self.adb_path, self.devices[DEVICE_ORIGIN_TO_REBOOT], self.adb_port)
         try:
             subprocess.check_output([cmd], shell=True)
         except subprocess.CalledProcessError:
@@ -72,7 +71,7 @@ class ConfigItem(object):
         for section in config.sections():
             for option in config.options(section):
                 if section == 'Devices':
-                    self.devices.append(config.get(section, option))
+                    self.devices[option] = config.get(section, option)
                 else:
                     self.__setattr__(option, config.get(section, option))
 
@@ -96,34 +95,41 @@ class ConfigItem(object):
 if __name__ == '__main__':
     conf_item = ConfigItem()
 
+    device_list = []
+
+    for device_name, device_value in conf_item.devices.items():
+        active_device = device_value.split(';', 1)
+        dev_origin = active_device[0]
+        dev_ip = active_device[1]
+        device_list.append((dev_origin, dev_ip))
+
     # DEVICELIST = []
     # actDeviceConfig = 0
-    # while actDeviceConfig < ANZAHL_DEVICES:
-    #     newDeviceName = "device_" + str(actDeviceConfig)
-    #     actDevice = ConfigSectionMap("Devices")[newDeviceName]
+    # while actDeviceConfig < len(conf_item.devices):
+    #     newDeviceName = "device_{}".format(actDeviceConfig)
+    #     actDevice = conf_item.devices[newDeviceName]
     #     actDevice = actDevice.split(";", 1)
     #     DEVICE_ORIGIN = actDevice.pop(0)
     #     DEVICE_IP = actDevice.pop(0)
-    #     newDEVICELIST = [(DEVICE_ORIGIN, DEVICE_IP)]
-    #     DEVICELIST = DEVICELIST + newDEVICELIST
-    #     actDeviceConfig = actDeviceConfig + 1
-    # else:
-    #     dictDEVICELIST = dict(DEVICELIST)
-    #
-    #
-    # # Do reboot of device
-    # TRY_COUNTER = 5
-    # COUNTER = 0
-    # while COUNTER < TRY_COUNTER:
-    #     conf_item.list_adb_connected_devices()
-    #     if dictDEVICELIST[DEVICE_ORIGIN_TO_REBOOT] in connectedDevices:
-    #         conf_item.reboot_device(DEVICE_ORIGIN_TO_REBOOT)
-    #         break;
-    #     else:
-    #         conf_item.connect_device(DEVICE_ORIGIN_TO_REBOOT)
-    #         COUNTER = COUNTER + 1
-    # else:
-    #     conf_item.reboot_device_via_power(DEVICE_ORIGIN_TO_REBOOT)
-    #
-    # # exit
-    # sys.exit(0)
+    #     # newDEVICELIST = [(DEVICE_ORIGIN, DEVICE_IP)]
+    #     # DEVICELIST = DEVICELIST + newDEVICELIST
+    #     actDeviceConfig +=1
+    # # else:
+    # #     dictDEVICELIST = dict(DEVICELIST)
+
+
+    # Do reboot of device
+    TRY_COUNTER = 5
+    COUNTER = 0
+    while COUNTER < TRY_COUNTER:
+        if dictDEVICELIST[DEVICE_ORIGIN_TO_REBOOT] in conf_item.list_adb_connected_devices():
+            conf_item.reboot_device(DEVICE_ORIGIN_TO_REBOOT)
+            break;
+        else:
+            conf_item.connect_device(DEVICE_ORIGIN_TO_REBOOT)
+            COUNTER = COUNTER + 1
+    else:
+        conf_item.reboot_device_via_power(DEVICE_ORIGIN_TO_REBOOT)
+
+    # exit
+    sys.exit(0)
