@@ -46,7 +46,7 @@ class ConfigItem(object):
         return connectedDevices
 
     def connect_device(self, DEVICE_ORIGIN_TO_REBOOT):
-        cmd = "{}/" + "adb connect {}".format(self.adb_path, self.devices[DEVICE_ORIGIN_TO_REBOOT])
+        cmd = "{}/adb connect {}".format(self.adb_path, self.devices[DEVICE_ORIGIN_TO_REBOOT])
         try:
             subprocess.check_output([cmd], shell=True)
         except subprocess.CalledProcessError:
@@ -55,7 +55,7 @@ class ConfigItem(object):
         time.sleep(2)
 
     def reboot_device(self, DEVICE_ORIGIN_TO_REBOOT):
-        cmd = "{}/" + "adb -s {}:{} reboot".format(self.adb_path, self.devices[DEVICE_ORIGIN_TO_REBOOT], self.adb_port)
+        cmd = "{}/adb -s {}:{} reboot".format(self.adb_path, self.devices[DEVICE_ORIGIN_TO_REBOOT], self.adb_port)
         try:
             subprocess.check_output([cmd], shell=True)
         except subprocess.CalledProcessError:
