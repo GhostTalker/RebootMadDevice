@@ -95,6 +95,7 @@ class ConfigItem(object):
 if __name__ == '__main__':
     conf_item = ConfigItem()
 
+    # TODO: add to ConfigItem
     device_list = []
 
     for device_name, device_value in conf_item.devices.items():
