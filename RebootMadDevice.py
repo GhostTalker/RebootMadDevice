@@ -8,12 +8,12 @@ __status__ = "Dev"
 #        pip3 install ConfigParser
 #
 
+import configparser
+import os
+import subprocess
 # generic/built-in and other libs
 import sys
-import subprocess
-import configparser
 import time
-import os
 
 # check syntax and arguments
 if (len(sys.argv) < 1 or len(sys.argv) > 2):
@@ -22,10 +22,6 @@ if (len(sys.argv) < 1 or len(sys.argv) > 2):
     sys.exit(0)
 DEVICE_ORIGIN_TO_REBOOT = (sys.argv[1])
 
-
-conf_file = os.path.join(os.path.dirname(__file__), "configs", "config.ini")
-if not os.path.isfile(conf_file):
-    print('"{}" does not exist'.format(conf_file))
 
 class ConfigItem(object):
     adb_path = None
@@ -36,13 +32,12 @@ class ConfigItem(object):
     poweron = None
     devices = []
 
-    def __init__(self, config):
-        self.config = config
+    def __init__(self):
         self._set_data()
 
     def list_adb_connected_devices(self):
         global connectedDevices
-        cmd =  "{}/adb devices | /bin/grep {}".format(self.adb_path, self.adb_port)
+        cmd = "{}/adb devices | /bin/grep {}".format(self.adb_path, self.adb_port)
         try:
             connectedDevices = subprocess.check_output([cmd], shell=True)
             connectedDevices = str(connectedDevices).replace("b'", "").replace("\\n'", "").replace(":5555", "").replace(
@@ -60,7 +55,8 @@ class ConfigItem(object):
         time.sleep(2)
 
     def reboot_device(self, DEVICE_ORIGIN_TO_REBOOT):
-        cmd = self.adb_path + "/" + "adb -s " + dictDEVICELIST[DEVICE_ORIGIN_TO_REBOOT] + ":" + self.adb_port + " reboot"
+        cmd = self.adb_path + "/" + "adb -s " + dictDEVICELIST[
+            DEVICE_ORIGIN_TO_REBOOT] + ":" + self.adb_port + " reboot"
         try:
             subprocess.check_output([cmd], shell=True)
         except subprocess.CalledProcessError:
@@ -72,52 +68,62 @@ class ConfigItem(object):
         print(self.poweron)
 
     def _set_data(self):
-        for section in self.config.sections():
-            for option in self.config.options(section):
+        config = self._read_config()
+        for section in config.sections():
+            for option in config.options(section):
                 if section == 'Devices':
-                    self.devices.append(self.config.get(section, option))
+                    self.devices.append(config.get(section, option))
                 else:
-                    self.__setattr__(option, self.config.get(section, option))
+                    self.__setattr__(option, config.get(section, option))
+
+    def _check_config(self):
+        conf_file = os.path.join(os.path.dirname(__file__), "configs", "config.ini")
+        if not os.path.isfile(conf_file):
+            raise FileExistsError('"{}" does not exist'.format(conf_file))
+        self.conf_file = conf_file
+
+    def _read_config(self):
+        try:
+            self._check_config()
+        except FileExistsError as e:
+            raise e
+        config = configparser.ConfigParser()
+        config.read(self.conf_file)
+
+        return config
 
 
-CONFIG = configparser.ConfigParser()
-CONFIG.read(conf_file)
+if __name__ == '__main__':
+    conf_item = ConfigItem()
 
-conf_item = ConfigItem(CONFIG)
-
-
-
-DEVICELIST = []
-actDeviceConfig = 0
-while actDeviceConfig < ANZAHL_DEVICES:
-    newDeviceName = "device_" + str(actDeviceConfig)
-    actDevice = ConfigSectionMap("Devices")[newDeviceName]
-    actDevice = actDevice.split(";", 1)
-    DEVICE_ORIGIN = actDevice.pop(0)
-    DEVICE_IP = actDevice.pop(0)
-    newDEVICELIST = [(DEVICE_ORIGIN, DEVICE_IP)]
-    DEVICELIST = DEVICELIST + newDEVICELIST
-    actDeviceConfig = actDeviceConfig + 1
-else:
-    dictDEVICELIST = dict(DEVICELIST)
-
-
-
-
-
-# Do reboot of device
-TRY_COUNTER = 5
-COUNTER = 0
-while COUNTER < TRY_COUNTER:
-    conf_item.list_adb_connected_devices()
-    if dictDEVICELIST[DEVICE_ORIGIN_TO_REBOOT] in connectedDevices:
-        conf_item.reboot_device(DEVICE_ORIGIN_TO_REBOOT)
-        break;
-    else:
-        conf_item.connect_device(DEVICE_ORIGIN_TO_REBOOT)
-        COUNTER = COUNTER + 1
-else:
-    conf_item.reboot_device_via_power(DEVICE_ORIGIN_TO_REBOOT)
-
-# exit
-sys.exit(0)
+    # DEVICELIST = []
+    # actDeviceConfig = 0
+    # while actDeviceConfig < ANZAHL_DEVICES:
+    #     newDeviceName = "device_" + str(actDeviceConfig)
+    #     actDevice = ConfigSectionMap("Devices")[newDeviceName]
+    #     actDevice = actDevice.split(";", 1)
+    #     DEVICE_ORIGIN = actDevice.pop(0)
+    #     DEVICE_IP = actDevice.pop(0)
+    #     newDEVICELIST = [(DEVICE_ORIGIN, DEVICE_IP)]
+    #     DEVICELIST = DEVICELIST + newDEVICELIST
+    #     actDeviceConfig = actDeviceConfig + 1
+    # else:
+    #     dictDEVICELIST = dict(DEVICELIST)
+    #
+    #
+    # # Do reboot of device
+    # TRY_COUNTER = 5
+    # COUNTER = 0
+    # while COUNTER < TRY_COUNTER:
+    #     conf_item.list_adb_connected_devices()
+    #     if dictDEVICELIST[DEVICE_ORIGIN_TO_REBOOT] in connectedDevices:
+    #         conf_item.reboot_device(DEVICE_ORIGIN_TO_REBOOT)
+    #         break;
+    #     else:
+    #         conf_item.connect_device(DEVICE_ORIGIN_TO_REBOOT)
+    #         COUNTER = COUNTER + 1
+    # else:
+    #     conf_item.reboot_device_via_power(DEVICE_ORIGIN_TO_REBOOT)
+    #
+    # # exit
+    # sys.exit(0)
