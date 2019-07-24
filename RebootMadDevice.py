@@ -27,6 +27,7 @@ class ConfigItem(object):
     poweroff = None
     poweron = None
     devices = {}
+    device_list = None
 
     def __init__(self):
         self._set_data()
@@ -70,10 +71,8 @@ class ConfigItem(object):
                     self.devices[option] = config.get(section, option)
                 else:
                     self.__setattr__(option, config.get(section, option))
-        self.create_device_list()
 
     def create_device_list(self):
-        global device_list
         device_list = []
         for device_name, device_value in self.devices.items():
             active_device = device_value.split(';', 1)
@@ -102,7 +101,7 @@ class ConfigItem(object):
 
 if __name__ == '__main__':
     conf_item = ConfigItem()
-
+    device_list = conf_item.create_device_list()
     try_counter = 5
     counter = 0
     while counter < try_counter:
