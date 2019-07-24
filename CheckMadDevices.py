@@ -10,6 +10,9 @@ import os
 import requests
 import sys
 import time
+import daemon
+import signal
+import lockfile
 
 
 class MonitoringItem(object):
