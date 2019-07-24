@@ -65,7 +65,8 @@ class MonitoringItem(object):
         if response.status_code == 200:
             return response
         else:
-            sys.exit(2)
+            time.sleep(10)
+            self.check_mitm_status_page(check_url)
 
     def read_device_status_values(self, device_origin):
         """ Read Values for a device from MITM status page """
@@ -82,33 +83,27 @@ class MonitoringItem(object):
         latest_data = (device_values["latest_data"])
         return injection_status, latest_data
 
-    def check_time_since_last_data(device_origin):
+    def check_time_since_last_data(self, device_origin):
         """ calculate time between now and latest_data """
         actual_time = time.time()
-        sec_since_last_data = actual_time - mon_item.read_device_status_values(device_origin)[1]
+        sec_since_last_data = actual_time - self.read_device_status_values(device_origin)[1]
         min_since_last_data = sec_since_last_data / 60
         min_since_last_data = int(min_since_last_data)
-        latest_data_hr = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(latest_data))
+        latest_data_hr = time.strftime('%Y-%m-%d %H:%M:%S',
+                                       time.localtime(self.read_device_status_values(device_origin)[0]))
         return min_since_last_data
 
 
 if __name__ == '__main__':
     mon_item = MonitoringItem()
-
+    # check and reboot device if nessessary
     while 1:
         device_origin_list = mon_item.create_device_origin_list()
         for device_origin in device_origin_list:
-            if mon_item.read_device_status_values(device_origin)[0] == True and mon_item.check_time_since_last_data(
-                    device_origin) < 15:
-                print("Device:   {}".format(device_origin))
-                print("LastData: {}".format(mon_item.check_time_since_last_data(device_origin)))
-                print("Injected: {}".format(mon_item.read_device_status_values(device_origin)[0]))
-                print("{} is ok!   ".format(device_origin))
-            else:
-                print("Device:   {}".format(device_origin))
-                print("LastData: {}".format(mon_item.check_time_since_last_data(device_origin)))
-                print("Injected: {}".format(mon_item.read_device_status_values(device_origin)[0]))
-                print("{} is NOT ok! Need reboot!".format(device_origin))
+            if mon_item.read_device_status_values(device_origin)[0] == False and mon_item.check_time_since_last_data(
+                    device_origin) > 10:
+                cmd = "./RebootMadDevice.py {}".format(device_origin)
+                subprocess.Popen([cmd])
 
     # exit
     sys.exit(0)
