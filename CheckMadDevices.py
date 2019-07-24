@@ -82,7 +82,7 @@ class MonitoringItem(object):
         latest_data = (device_values["latest_data"])
         return injection_status, latest_data
 
-    def check_time_since_last_data(self):
+    def check_time_since_last_data(device_origin):
         """ calculate time between now and latest_data """
         actual_time = time.time()
         sec_since_last_data = actual_time - mon_item.read_device_status_values(device_origin)[1]
@@ -95,15 +95,20 @@ class MonitoringItem(object):
 if __name__ == '__main__':
     mon_item = MonitoringItem()
 
-    #TODO
-    #LOOP for devices and check all
-    #
-    device_origin_list = mon_item.create_device_origin_list()
-
-    device_origin = "DescapitusSatThree"
-
-    print(mon_item.read_device_status_values(device_origin)[0])
-    print(mon_item.check_time_since_last_data())
+    while 1:
+        device_origin_list = mon_item.create_device_origin_list()
+        for device_origin in device_origin_list:
+            if mon_item.read_device_status_values(device_origin)[0] == True and mon_item.check_time_since_last_data(
+                    device_origin) < 15:
+                print("Device:   {}".format(device_origin))
+                print("LastData: {}".format(mon_item.check_time_since_last_data(device_origin)))
+                print("Injected: {}".format(mon_item.read_device_status_values(device_origin)[0]))
+                print("{} is ok!   ".format(device_origin))
+            else:
+                print("Device:   {}".format(device_origin))
+                print("LastData: {}".format(mon_item.check_time_since_last_data(device_origin)))
+                print("Injected: {}".format(mon_item.read_device_status_values(device_origin)[0]))
+                print("{} is NOT ok! Need reboot!".format(device_origin))
 
     # exit
     sys.exit(0)
