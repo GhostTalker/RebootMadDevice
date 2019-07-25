@@ -13,6 +13,8 @@ import time
 import daemon
 import signal
 import lockfile
+import subprocess
+import logging
 
 
 class MonitoringItem(object):
@@ -25,6 +27,7 @@ class MonitoringItem(object):
     injection_status = None
     latest_data = None
     response = None
+    timestamp = None
 
     def __init__(self):
         self._set_data()
@@ -89,6 +92,8 @@ class MonitoringItem(object):
     def check_time_since_last_data(self, device_origin):
         """ calculate time between now and latest_data """
         actual_time = time.time()
+        if self.read_device_status_values(device_origin)[1] == None:
+            return 99999
         sec_since_last_data = actual_time - self.read_device_status_values(device_origin)[1]
         min_since_last_data = sec_since_last_data / 60
         min_since_last_data = int(min_since_last_data)
@@ -96,17 +101,29 @@ class MonitoringItem(object):
                                        time.localtime(self.read_device_status_values(device_origin)[0]))
         return min_since_last_data
 
+    def timestamp(self):
+        from time import strftime
+        timestamp = strftime("%Y-%m-%d %H:%M:%S")
+        return (str(timestamp))
 
-if __name__ == '__main__':
+
+def check_and_reboot():
     mon_item = MonitoringItem()
+    print("MAD - Check and Reboot - Daemon started")
     # check and reboot device if nessessary
     while 1:
         device_origin_list = mon_item.create_device_origin_list()
         for device_origin in device_origin_list:
+            print(mon_item.timestamp() + ":  Device = " + device_origin + "    Last_Connect = " + str(
+                mon_item.check_time_since_last_data(device_origin)) + "     Inject = " + str(
+                mon_item.read_device_status_values(device_origin)[0]))
             if mon_item.read_device_status_values(device_origin)[0] == False and mon_item.check_time_since_last_data(
                     device_origin) > 10:
-                cmd = "./RebootMadDevice.py {}".format(device_origin)
-                subprocess.Popen([cmd])
+                subprocess.Popen(["/root/adb_scripts/RebootMadDevice.py", device_origin])
+                time.sleep(180)
+        time.sleep(600)
 
-    # exit
-    sys.exit(0)
+
+if __name__ == '__main__':
+    # with daemon.DaemonContext( pidfile=lockfile.FileLock('/var/run/CheckMadDevices.pid'),stdout=sys.stdout,stderr=sys.stderr,working_directory='/root/adb_scripts'):
+    check_and_reboot()
