@@ -114,9 +114,12 @@ def check_and_reboot():
     while 1:
         device_origin_list = mon_item.create_device_origin_list()
         for device_origin in device_origin_list:
-            print(mon_item.timestamp() + ":  Device = " + device_origin + "    Last_Connect = " + str(
-                mon_item.check_time_since_last_data(device_origin)) + "     Inject = " + str(
-                mon_item.read_device_status_values(device_origin)[0]))
+            print("{}:  Device = {}	Minutes_since_last_Connect = {}	Inject = {}".format(mon_item.timestamp(),
+                                                                                              device_origin,
+                                                                                              mon_item.check_time_since_last_data(
+                                                                                                  device_origin),
+                                                                                              mon_item.read_device_status_values(
+                                                                                                  device_origin)[0]))
             if mon_item.read_device_status_values(device_origin)[0] == False and mon_item.check_time_since_last_data(
                     device_origin) > 10:
                 subprocess.Popen(["/root/adb_scripts/RebootMadDevice.py", device_origin])

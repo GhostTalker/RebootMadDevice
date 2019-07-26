@@ -53,14 +53,18 @@ class ConfigItem(object):
 
     def reboot_device(self, DEVICE_ORIGIN_TO_REBOOT):
         cmd = "{}/adb -s {}:{} reboot".format(self.adb_path, device_list[DEVICE_ORIGIN_TO_REBOOT], self.adb_port)
+        print("rebooting Device {}. Please wait".format(DEVICE_ORIGIN_TO_REBOOT))
         try:
             subprocess.check_output([cmd], shell=True)
         except subprocess.CalledProcessError:
+            print("rebooting Device {} via ADB not possible. Using PowerSwitch...".format(DEVICE_ORIGIN_TO_REBOOT))
             self.reboot_device_via_power(DEVICE_ORIGIN_TO_REBOOT)
 
     def reboot_device_via_power(self, DEVICE_ORIGIN_TO_REBOOT):
+        print("turn PowerSwitch off")
         print(self.poweroff)
         time.sleep(5)
+        print("turn PowerSwitch on")
         print(self.poweron)
 
     def _set_data(self):
