@@ -10,11 +10,10 @@ import os
 import requests
 import sys
 import time
-import daemon
-import signal
-import lockfile
 import subprocess
 import logging
+import logging.handlers
+import argparse
 
 
 class MonitoringItem(object):
@@ -27,7 +26,6 @@ class MonitoringItem(object):
     injection_status = None
     latest_data = None
     response = None
-    timestamp = None
 
     def __init__(self):
         self._set_data()
@@ -101,21 +99,16 @@ class MonitoringItem(object):
                                        time.localtime(self.read_device_status_values(device_origin)[0]))
         return min_since_last_data
 
-    def timestamp(self):
-        from time import strftime
-        timestamp = strftime("%Y-%m-%d %H:%M:%S")
-        return (str(timestamp))
-
 
 def check_and_reboot():
     mon_item = MonitoringItem()
+
     print("MAD - Check and Reboot - Daemon started")
     # check and reboot device if nessessary
     while 1:
         device_origin_list = mon_item.create_device_origin_list()
         for device_origin in device_origin_list:
-            print("{}:  Device = {}	Minutes_since_last_Connect = {}	Inject = {}".format(mon_item.timestamp(),
-                                                                                              device_origin,
+            print("Device = {}	Minutes_since_last_Connect = {}	Inject = {}".format(device_origin,
                                                                                               mon_item.check_time_since_last_data(
                                                                                                   device_origin),
                                                                                               mon_item.read_device_status_values(
@@ -128,5 +121,4 @@ def check_and_reboot():
 
 
 if __name__ == '__main__':
-    # with daemon.DaemonContext( pidfile=lockfile.FileLock('/var/run/CheckMadDevices.pid'),stdout=sys.stdout,stderr=sys.stderr,working_directory='/root/adb_scripts'):
     check_and_reboot()
