@@ -128,11 +128,12 @@ if __name__ == '__main__':
     handler.setFormatter(formatter)
     logger.addHandler(handler)
 
+    # redirect stdout and stderr to logfile
     sys.stdout = MyLogger(logger, logging.INFO)
     sys.stderr = MyLogger(logger, logging.ERROR)
 
-    print("MAD - Check and Reboot - Daemon started")
     # check and reboot device if nessessary
+    print("MAD - Check and Reboot - Daemon started")
     while 1:
         device_origin_list = mon_item.create_device_origin_list()
         for device_origin in device_origin_list:
