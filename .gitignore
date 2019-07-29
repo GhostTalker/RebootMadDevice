@@ -2,3 +2,5 @@
 .idea/
 venv/
 /configs/config.ini
+CheckMadDevicesDaemon.sh
+
