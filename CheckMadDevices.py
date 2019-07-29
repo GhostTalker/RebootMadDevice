@@ -120,12 +120,10 @@ if __name__ == '__main__':
     mon_item = MonitoringItem()
 
     # Logging params
-    LOG_LEVEL = logging.getLevelName(mon_item.log_level)
     logger = logging.getLogger(__name__)
-    logger.setLevel(LOG_LEVEL)
+    logger.setLevel(logging.getLevelName(mon_item.log_level))
     handler = logging.handlers.TimedRotatingFileHandler(mon_item.log_filename, when="midnight", backupCount=3)
-    formatter = logging.Formatter('%(asctime)s %(levelname)-8s %(message)s')
-    handler.setFormatter(formatter)
+    handler.setFormatter(logging.Formatter('%(asctime)s %(levelname)-8s %(message)s'))
     logger.addHandler(handler)
 
     # redirect stdout and stderr to logfile
