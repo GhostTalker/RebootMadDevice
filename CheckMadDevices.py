@@ -100,8 +100,36 @@ class MonitoringItem(object):
         return min_since_last_data
 
 
-def check_and_reboot():
+# Make a class we can use to capture stdout and sterr in the log
+class MyLogger(object):
+    def __init__(self, logger, level):
+        """Needs a logger and a logger level."""
+        self.logger = logger
+        self.level = level
+
+    def write(self, message):
+        # Only log if there is a message (not just a new line)
+        if message.rstrip() != "":
+            self.logger.log(self.level, message.rstrip())
+
+    def flush(self):
+        pass
+
+
+if __name__ == '__main__':
     mon_item = MonitoringItem()
+
+    # Logging params
+    LOG_LEVEL = logging.getLevelName(mon_item.log_level)
+    logger = logging.getLogger(__name__)
+    logger.setLevel(LOG_LEVEL)
+    handler = logging.handlers.TimedRotatingFileHandler(mon_item.log_filename, when="midnight", backupCount=3)
+    formatter = logging.Formatter('%(asctime)s %(levelname)-8s %(message)s')
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
+
+    sys.stdout = MyLogger(logger, logging.INFO)
+    sys.stderr = MyLogger(logger, logging.ERROR)
 
     print("MAD - Check and Reboot - Daemon started")
     # check and reboot device if nessessary
@@ -109,16 +137,12 @@ def check_and_reboot():
         device_origin_list = mon_item.create_device_origin_list()
         for device_origin in device_origin_list:
             print("Device = {}	Minutes_since_last_Connect = {}	Inject = {}".format(device_origin,
-                                                                                              mon_item.check_time_since_last_data(
-                                                                                                  device_origin),
-                                                                                              mon_item.read_device_status_values(
-                                                                                                  device_origin)[0]))
+                                                                                         mon_item.check_time_since_last_data(
+                                                                                             device_origin),
+                                                                                         mon_item.read_device_status_values(
+                                                                                             device_origin)[0]))
             if mon_item.read_device_status_values(device_origin)[0] == False and mon_item.check_time_since_last_data(
                     device_origin) > 10:
                 subprocess.Popen(["/root/adb_scripts/RebootMadDevice.py", device_origin])
                 time.sleep(180)
         time.sleep(600)
-
-
-if __name__ == '__main__':
-    check_and_reboot()
