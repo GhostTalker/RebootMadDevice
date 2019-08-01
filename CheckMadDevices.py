@@ -142,6 +142,8 @@ if __name__ == '__main__':
                                                                                              device_origin)[0]))
             if mon_item.read_device_status_values(device_origin)[0] == False and mon_item.check_time_since_last_data(
                     device_origin) > 10:
+                print("Device = {}	will be rebooted now.".format(device_origin))
                 subprocess.Popen(["/root/adb_scripts/RebootMadDevice.py", device_origin])
                 time.sleep(180)
+        print()
         time.sleep(600)
