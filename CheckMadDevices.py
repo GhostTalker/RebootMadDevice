@@ -26,6 +26,8 @@ class MonitoringItem(object):
     injection_status = None
     latest_data = None
     response = None
+    auth_user = None
+    auth_pass = None
 
     def __init__(self):
         self._set_data()
@@ -63,24 +65,24 @@ class MonitoringItem(object):
         config.read(self.conf_file)
         return config
 
-    def check_mitm_status_page(self, check_url):
-        """  Check Response Code and Output from MITM status page """
-        response = requests.get(check_url)
+    def check_status_page(self, check_url, auth_user, auth_pass):
+        """  Check Response Code and Output from status page """
+        response = requests.get(check_url, auth=(auth_user, auth_pass))
         if response.status_code == 200:
             return response
         else:
             time.sleep(10)
-            self.check_mitm_status_page(check_url)
+            self.check_status_page(check_url, auth_user, auth_pass)
 
     def read_device_status_values(self, device_origin):
         """ Read Values for a device from MITM status page """
-        check_url = "http://{}:{}/{}/".format(self.mitm_receiver_ip, self.mitm_receiver_port,
-                                              self.mitm_receiver_status_endpoint)
-        self.check_mitm_status_page(check_url)
+        check_url = "{}://{}:{}/{}/".format(self.mitm_proto, self.mitm_receiver_ip, self.mitm_receiver_port,
+                                            self.mitm_receiver_status_endpoint)
+        self.check_status_page(check_url, self.mitm_user, self.mitm_pass)
         # Read Values
         global injection_status
         global latest_data
-        json_respond = self.check_mitm_status_page(check_url).json()
+        json_respond = self.check_status_page(check_url, self.mitm_user, self.mitm_pass).json()
         devices = (json_respond["origin_status"])
         device_values = (devices[device_origin])
         injection_status = (device_values["injection_status"])
@@ -98,6 +100,25 @@ class MonitoringItem(object):
         latest_data_hr = time.strftime('%Y-%m-%d %H:%M:%S',
                                        time.localtime(self.read_device_status_values(device_origin)[0]))
         return min_since_last_data
+
+    def read_mad_status_values(self, device_origin):
+        """ Read Values for a device from MITM status page """
+        check_url = "{}://{}:{}/{}".format(self.madmin_proto, self.madmin_ip, self.madmin_port,
+                                           self.madmin_status_endpoint)
+        self.check_status_page(check_url, self.madmin_user, self.madmin_pass)
+
+        # Read Values
+        counter = 0;
+        json_respond = self.check_status_page(check_url, self.madmin_user, self.madmin_pass).json()
+        while json_respond[counter]["origin"] != device_origin:
+            counter += 1
+        else:
+            devices_route_manager = (json_respond[counter]["routemanager"])
+            device_last_reboot = (json_respond[counter]["lastPogoReboot"])
+            device_last_restart = (json_respond[counter]["lastPogoRestart"])
+            device_last_proto = (json_respond[counter]["lastProtoDateTime"])
+            device_route_init = (json_respond[counter]["init"])
+            return devices_route_manager, device_last_reboot, device_last_restart, device_last_proto, device_route_init
 
 
 # Make a class we can use to capture stdout and sterr in the log
@@ -140,10 +161,14 @@ if __name__ == '__main__':
                                                                                              device_origin),
                                                                                          mon_item.read_device_status_values(
                                                                                              device_origin)[0]))
+            print("Initmode = {}, LastRestart = {}, LastReboot = {}, LastProtoDate = {}, Worker = {} ".format(
+                mon_item.read_mad_status_values(device_origin)[4], mon_item.read_mad_status_values(device_origin)[2],
+                mon_item.read_mad_status_values(device_origin)[1], mon_item.read_mad_status_values(device_origin)[3],
+                mon_item.read_mad_status_values(device_origin)[0]))
             if mon_item.read_device_status_values(device_origin)[0] == False and mon_item.check_time_since_last_data(
                     device_origin) > 10:
                 print("Device = {}	will be rebooted now.".format(device_origin))
                 subprocess.Popen(["/root/adb_scripts/RebootMadDevice.py", device_origin])
                 time.sleep(180)
-        print()
+            print()
         time.sleep(600)
