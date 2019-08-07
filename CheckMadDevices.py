@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 __author__ = "GhostTalker"
 __copyright__ = "Copyright 2019, The GhostTalker project"
-__version__ = "0.1.0"
+__version__ = "0.5.0"
 __status__ = "Dev"
 
 # generic/built-in and other libs
@@ -14,6 +14,7 @@ import subprocess
 import logging
 import logging.handlers
 import argparse
+import datetime
 
 
 class MonitoringItem(object):
@@ -80,8 +81,6 @@ class MonitoringItem(object):
                                             self.mitm_receiver_status_endpoint)
         self.check_status_page(check_url, self.mitm_user, self.mitm_pass)
         # Read Values
-        global injection_status
-        global latest_data
         json_respond = self.check_status_page(check_url, self.mitm_user, self.mitm_pass).json()
         devices = (json_respond["origin_status"])
         device_values = (devices[device_origin])
@@ -98,8 +97,8 @@ class MonitoringItem(object):
         min_since_last_data = sec_since_last_data / 60
         min_since_last_data = int(min_since_last_data)
         latest_data_hr = time.strftime('%Y-%m-%d %H:%M:%S',
-                                       time.localtime(self.read_device_status_values(device_origin)[0]))
-        return min_since_last_data
+                                       time.localtime(self.read_device_status_values(device_origin)[1]))
+        return min_since_last_data, latest_data_hr
 
     def read_mad_status_values(self, device_origin):
         """ Read Values for a device from MITM status page """
@@ -119,6 +118,17 @@ class MonitoringItem(object):
             device_last_proto = (json_respond[counter]["lastProtoDateTime"])
             device_route_init = (json_respond[counter]["init"])
             return devices_route_manager, device_last_reboot, device_last_restart, device_last_proto, device_route_init
+
+    def calc_past_min_from_now(self, timedate):
+        """ calculate time between now and given timedate """
+        actual_time = time.time()
+        if timedate == None:
+            return 99999
+        timedate = datetime.datetime.strptime(timedate, '%Y-%m-%d %H:%M:%S').timestamp()
+        past_sec_from_now = actual_time - timedate
+        past_min_from_now = past_sec_from_now / 60
+        past_min_from_now = int(past_min_from_now)
+        return past_min_from_now
 
 
 # Make a class we can use to capture stdout and sterr in the log
@@ -156,17 +166,26 @@ if __name__ == '__main__':
     while 1:
         device_origin_list = mon_item.create_device_origin_list()
         for device_origin in device_origin_list:
-            print("Device = {}	Minutes_since_last_Connect = {}	Inject = {}".format(device_origin,
-                                                                                         mon_item.check_time_since_last_data(
-                                                                                             device_origin),
-                                                                                         mon_item.read_device_status_values(
-                                                                                             device_origin)[0]))
-            print("Initmode = {}, LastRestart = {}, LastReboot = {}, LastProtoDate = {}, Worker = {} ".format(
-                mon_item.read_mad_status_values(device_origin)[4], mon_item.read_mad_status_values(device_origin)[2],
-                mon_item.read_mad_status_values(device_origin)[1], mon_item.read_mad_status_values(device_origin)[3],
-                mon_item.read_mad_status_values(device_origin)[0]))
+            # logging
+            print("Device:        {}".format(device_origin))
+            print("Inject:        {}".format(mon_item.read_device_status_values(device_origin)[0]))
+            print("Worker:        {} (Init={})".format(mon_item.read_mad_status_values(device_origin)[0],
+                                                       mon_item.read_mad_status_values(device_origin)[4]))
+            print("LastData:      {} ( {} minutes ago )".format(mon_item.check_time_since_last_data(device_origin)[1],
+                                                                mon_item.check_time_since_last_data(device_origin)[0]))
+            print("LastProtoDate: {} ( {} minutes ago )".format(mon_item.read_mad_status_values(device_origin)[3],
+                                                                mon_item.calc_past_min_from_now(
+                                                                    mon_item.read_mad_status_values(device_origin)[3])))
+            print("LastRestart:   {} ( {} minutes ago )".format(mon_item.read_mad_status_values(device_origin)[2],
+                                                                mon_item.calc_past_min_from_now(
+                                                                    mon_item.read_mad_status_values(device_origin)[2])))
+            print("LastReboot:    {} ( {} minutes ago )".format(mon_item.read_mad_status_values(device_origin)[1],
+                                                                mon_item.calc_past_min_from_now(
+                                                                    mon_item.read_mad_status_values(device_origin)[1])))
+
+            # do reboot if nessessary
             if mon_item.read_device_status_values(device_origin)[0] == False and mon_item.check_time_since_last_data(
-                    device_origin) > 10:
+                    device_origin)[0] > 10:
                 print("Device = {}	will be rebooted now.".format(device_origin))
                 subprocess.Popen(["/root/adb_scripts/RebootMadDevice.py", device_origin])
                 time.sleep(180)
