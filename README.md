@@ -8,4 +8,5 @@ adjust CheckMadDevicesDaemon.sh with install path
 
 
 ToDo:
-- Implementation of PowerON/OFF via http request
+- Improve reboot checks with additional data from madmin status endpoint
+

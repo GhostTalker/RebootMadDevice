@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 __author__ = "GhostTalker"
 __copyright__ = "Copyright 2019, The GhostTalker project"
-__version__ = "0.5.0"
+__version__ = "0.6.0"
 __status__ = "Dev"
 
 # generic/built-in and other libs
@@ -10,6 +10,7 @@ import os
 import subprocess
 import sys
 import time
+import requests
 
 # check syntax and arguments
 if (len(sys.argv) < 1 or len(sys.argv) > 2):
@@ -62,10 +63,10 @@ class ConfigItem(object):
 
     def reboot_device_via_power(self, DEVICE_ORIGIN_TO_REBOOT):
         print("turn PowerSwitch off")
-        print(self.poweroff)
+        requests.get(self.poweroff)
         time.sleep(5)
         print("turn PowerSwitch on")
-        print(self.poweron)
+        requests.get(self.poweron)
 
     def _set_data(self):
         config = self._read_config()
