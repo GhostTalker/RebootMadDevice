@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 __author__ = "GhostTalker"
 __copyright__ = "Copyright 2019, The GhostTalker project"
-__version__ = "0.6.0"
+__version__ = "0.7.0"
 __status__ = "Dev"
 
 # generic/built-in and other libs
@@ -13,7 +13,6 @@ import time
 import subprocess
 import logging
 import logging.handlers
-import argparse
 import datetime
 
 
@@ -68,11 +67,40 @@ class MonitoringItem(object):
 
     def check_status_page(self, check_url, auth_user, auth_pass):
         """  Check Response Code and Output from status page """
-        response = requests.get(check_url, auth=(auth_user, auth_pass))
-        if response.status_code == 200:
-            return response
-        else:
+        response = ""
+
+        try:
+            response = requests.get(check_url, auth=(auth_user, auth_pass))
+            response.raise_for_status()
+            if response is None:
+                print("Response is null. Retry in 5s...")
+                time.sleep(5)
+                self.check_status_page(check_url, auth_user, auth_pass)
+            elif response.status_code == 200:
+                return response
+            else:
+                time.sleep(30)
+                print("Statuscode is {}, not 200. Retry connect to statuspage...".format(response.status_code))
+                self.check_status_page(check_url, auth_user, auth_pass)
+        except requests.exceptions.HTTPError as errh:
+            print("Http Error:", errh)
+            print("Retry connect to statuspage in 10s...")
             time.sleep(10)
+            self.check_status_page(check_url, auth_user, auth_pass)
+        except requests.exceptions.ConnectionError as errc:
+            print("Error Connecting:", errc)
+            print("Retry connect to statuspage in 30s...")
+            time.sleep(30)
+            self.check_status_page(check_url, auth_user, auth_pass)
+        except requests.exceptions.Timeout as errt:
+            print("Timeout Error:", errt)
+            print("Retry connect to statuspage in 10s...")
+            time.sleep(10)
+            self.check_status_page(check_url, auth_user, auth_pass)
+        except requests.exceptions.RequestException as err:
+            print("OOps: Something Else", err)
+            print("Retry connect to statuspage in 30s...")
+            time.sleep(30)
             self.check_status_page(check_url, auth_user, auth_pass)
 
     def read_device_status_values(self, device_origin):
@@ -91,8 +119,8 @@ class MonitoringItem(object):
     def check_time_since_last_data(self, device_origin):
         """ calculate time between now and latest_data """
         actual_time = time.time()
-        if self.read_device_status_values(device_origin)[1] == None:
-            return 99999
+        if self.read_device_status_values(device_origin)[1] is None:
+            return 99999, "unknown"
         sec_since_last_data = actual_time - self.read_device_status_values(device_origin)[1]
         min_since_last_data = sec_since_last_data / 60
         min_since_last_data = int(min_since_last_data)
@@ -122,7 +150,7 @@ class MonitoringItem(object):
     def calc_past_min_from_now(self, timedate):
         """ calculate time between now and given timedate """
         actual_time = time.time()
-        if timedate == None:
+        if timedate == None or timedate == "":
             return 99999
         timedate = datetime.datetime.strptime(timedate, '%Y-%m-%d %H:%M:%S').timestamp()
         past_sec_from_now = actual_time - timedate
@@ -162,11 +190,19 @@ if __name__ == '__main__':
     sys.stderr = MyLogger(logger, logging.ERROR)
 
     # check and reboot device if nessessary
-    print("MAD - Check and Reboot - Daemon started")
+
+    print(" ")
+    print(" ")
+    print("===================================================================")
+    print("=           MAD - Check and Reboot - Daemon started               =")
+    print("===================================================================")
+    print(" ")
+
     while 1:
         device_origin_list = mon_item.create_device_origin_list()
         for device_origin in device_origin_list:
             # logging
+            print("-------------------------------------------------------------------")
             print("Device:        {}".format(device_origin))
             print("Inject:        {}".format(mon_item.read_device_status_values(device_origin)[0]))
             print("Worker:        {} (Init={})".format(mon_item.read_mad_status_values(device_origin)[0],
@@ -185,7 +221,8 @@ if __name__ == '__main__':
 
             # do reboot if nessessary
             if mon_item.read_device_status_values(device_origin)[0] == False and mon_item.check_time_since_last_data(
-                    device_origin)[0] > 10:
+                    device_origin)[0] > 10 or mon_item.calc_past_min_from_now(
+                mon_item.read_mad_status_values(device_origin)[3]) > 30:
                 print("Device = {}	will be rebooted now.".format(device_origin))
                 subprocess.Popen(["/root/adb_scripts/RebootMadDevice.py", device_origin])
                 time.sleep(180)
