@@ -28,6 +28,7 @@ class ConfigItem(object):
     poweroff = None
     poweron = None
     devices = {}
+    powerswitchcommands = {}
     device_list = None
 
     def __init__(self):
@@ -62,11 +63,20 @@ class ConfigItem(object):
             self.reboot_device_via_power(DEVICE_ORIGIN_TO_REBOOT)
 
     def reboot_device_via_power(self, DEVICE_ORIGIN_TO_REBOOT):
+        dev_nr = ""
+        powerswitch_dict = dict(self.powerswitchcommands.items())
+        for key, value in self.devices.items():
+            dev_origin = value.split(';', 1)
+            if dev_origin[0] == DEVICE_ORIGIN_TO_REBOOT:
+                dev_nr = key
+                poweron = "poweron_{}".format(dev_nr)
+                poweroff = "poweroff_{}".format(dev_nr)
+                break
         print("turn PowerSwitch off")
-        requests.get(self.poweroff)
+        requests.get(powerswitch_dict[poweroff])
         time.sleep(5)
         print("turn PowerSwitch on")
-        requests.get(self.poweron)
+        requests.get(powerswitch_dict[poweron])
 
     def _set_data(self):
         config = self._read_config()
@@ -74,6 +84,8 @@ class ConfigItem(object):
             for option in config.options(section):
                 if section == 'Devices':
                     self.devices[option] = config.get(section, option)
+                elif section == 'PowerSwitchCommands':
+                    self.powerswitchcommands[option] = config.get(section, option)
                 else:
                     self.__setattr__(option, config.get(section, option))
 
@@ -107,7 +119,7 @@ class ConfigItem(object):
 if __name__ == '__main__':
     conf_item = ConfigItem()
     device_list = conf_item.create_device_list()
-    try_counter = 5
+    try_counter = 1
     counter = 0
     while counter < try_counter:
         if device_list[DEVICE_ORIGIN_TO_REBOOT] in conf_item.list_adb_connected_devices():
