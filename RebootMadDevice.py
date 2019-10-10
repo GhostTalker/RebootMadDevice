@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 __author__ = "GhostTalker"
 __copyright__ = "Copyright 2019, The GhostTalker project"
-__version__ = "0.6.0"
+__version__ = "0.7.0"
 __status__ = "Dev"
 
 # generic/built-in and other libs
@@ -11,6 +11,7 @@ import subprocess
 import sys
 import time
 import requests
+import RPi.GPIO as GPIO
 
 # check syntax and arguments
 if (len(sys.argv) < 1 or len(sys.argv) > 2):
@@ -65,19 +66,34 @@ class ConfigItem(object):
     def reboot_device_via_power(self, DEVICE_ORIGIN_TO_REBOOT):
         dev_nr = ""
         powerswitch_dict = dict(self.powerswitchcommands.items())
+        
         for key, value in self.devices.items():
             dev_origin = value.split(';', 1)
             if dev_origin[0] == DEVICE_ORIGIN_TO_REBOOT:
                 dev_nr = key
-                poweron = "poweron_{}".format(dev_nr)
-                poweroff = "poweroff_{}".format(dev_nr)
                 break
-        print("turn PowerSwitch off")
-        requests.get(powerswitch_dict[poweroff])
-        time.sleep(5)
-        print("turn PowerSwitch on")
-        requests.get(powerswitch_dict[poweron])
 
+        if powerswitch_dict['''switch_mode'''] == 'HTML':
+            poweron = "poweron_{}".format(dev_nr)
+            poweroff = "poweroff_{}".format(dev_nr)
+            print("turn HTTP PowerSwitch off")
+            requests.get(powerswitch_dict[poweroff])
+            time.sleep(5)
+            print("turn HTTP PowerSwitch on")
+            requests.get(powerswitch_dict[poweron])        
+        elif powerswitch_dict['''switch_mode'''] == 'GPIO':
+            gpioname = "gpio_{}".format(dev_nr)
+            gpionr = int(powerswitch_dict[gpioname])
+            print("turn GPIO PowerSwitch off")
+            GPIO.setwarnings(False)
+            GPIO.setmode(GPIO.BCM)
+            GPIO.setup(gpionr, GPIO.OUT)            
+            time.sleep(5)
+            print("turn GPIO PowerSwitch on")
+            GPIO.output(gpionr, GPIO.HIGH)
+        else:
+            print("no PowerSwitch configured. Do it manually!!!")
+        
     def _set_data(self):
         config = self._read_config()
         for section in config.sections():

@@ -31,9 +31,12 @@ DEVICE_1: <ORINGIN_DEVICE_1>;<IP_ADRESS_DEVICE_1>
 DEVICE_xx: <ORINGIN_DEVICE_xx>;<IP_ADRESS_DEVICE_xx>
 
 [PowerSwitchCommands]
+SWITCH_MODE: <GPIO or HTTP>
+#### for HTTP mode ####
 PowerON_Device_1: http://<IPADRESS_POWER_SWITCH>/<PowerONcommand>
 PowerOFF_Device_1: http://<IPADRESS_POWER_SWITCH>/<PowerOFFcommand>
 PowerON_Device_2: http://<IPADRESS_POWER_SWITCH>/<PowerONcommand>
 PowerOFF_Device_2: http://<IPADRESS_POWER_SWITCH>/<PowerOFFcommand>
-PowerON_Device_3: http://<IPADRESS_POWER_SWITCH>/<PowerONcommand>
-PowerOFF_Device_3: http://<IPADRESS_POWER_SWITCH>/<PowerOFFcommand>
+#### for GPIO mode ####
+GPIO_Device_1: 17
+GPIO_Device_2: 27
