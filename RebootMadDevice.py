@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 __author__ = "GhostTalker"
 __copyright__ = "Copyright 2019, The GhostTalker project"
-__version__ = "0.7.0"
+__version__ = "0.8.0"
 __status__ = "Dev"
 
 # generic/built-in and other libs
@@ -66,7 +66,7 @@ class ConfigItem(object):
     def reboot_device_via_power(self, DEVICE_ORIGIN_TO_REBOOT):
         dev_nr = ""
         powerswitch_dict = dict(self.powerswitchcommands.items())
-        
+
         for key, value in self.devices.items():
             dev_origin = value.split(';', 1)
             if dev_origin[0] == DEVICE_ORIGIN_TO_REBOOT:
@@ -80,20 +80,30 @@ class ConfigItem(object):
             requests.get(powerswitch_dict[poweroff])
             time.sleep(5)
             print("turn HTTP PowerSwitch on")
-            requests.get(powerswitch_dict[poweron])        
+            requests.get(powerswitch_dict[poweron])
         elif powerswitch_dict['''switch_mode'''] == 'GPIO':
             gpioname = "gpio_{}".format(dev_nr)
             gpionr = int(powerswitch_dict[gpioname])
             print("turn GPIO PowerSwitch off")
             GPIO.setwarnings(False)
             GPIO.setmode(GPIO.BCM)
-            GPIO.setup(gpionr, GPIO.OUT)            
-            time.sleep(5)
+            if powerswitch_dict['''relay_mode'''] == 'NO':
+                GPIO.setup(gpionr, GPIO.OUT, initial=GPIO.HIGH)
+            elif powerswitch_dict['''relay_mode'''] == 'NC':
+                GPIO.setup(gpionr, GPIO.OUT, initial=GPIO.LOW)
+            else:
+                print("wrong relay_mode in config")
+            time.sleep(10)
             print("turn GPIO PowerSwitch on")
-            GPIO.output(gpionr, GPIO.HIGH)
+            if powerswitch_dict['''relay_mode'''] == 'NO':
+                GPIO.output(gpionr, GPIO.LOW)
+            elif powerswitch_dict['''relay_mode'''] == 'NC':
+                GPIO.output(gpionr, GPIO.HIGH)
+            else:
+                print("wrong relay_mode in config")
         else:
             print("no PowerSwitch configured. Do it manually!!!")
-        
+
     def _set_data(self):
         config = self._read_config()
         for section in config.sections():
@@ -135,13 +145,15 @@ class ConfigItem(object):
 if __name__ == '__main__':
     conf_item = ConfigItem()
     device_list = conf_item.create_device_list()
-    try_counter = 1
+    try_counter = 2
     counter = 0
     while counter < try_counter:
         if device_list[DEVICE_ORIGIN_TO_REBOOT] in conf_item.list_adb_connected_devices():
+            print("Device {} already connected".format(DEVICE_ORIGIN_TO_REBOOT))
             conf_item.reboot_device(DEVICE_ORIGIN_TO_REBOOT)
             break;
         else:
+            print("Device {} not connected".format(DEVICE_ORIGIN_TO_REBOOT))
             conf_item.connect_device(DEVICE_ORIGIN_TO_REBOOT)
             counter = counter + 1
     else:

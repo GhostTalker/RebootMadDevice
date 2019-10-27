@@ -25,9 +25,10 @@ MADMIN_USER: madmin
 MADMIN_PASS: yourpass
 
 [Reboot Options]
-MITM_TIMEOUT = 10    # no mitm connect from device timeout
-PROTO_TIMEOUT = 30   # no data from device timeout
-REBOOT_WAITTIME = 10 # next reboot for a device after this waittime
+SLEEPTIME_BETWEEN_CHECK = 300   # time in s between checking all devices
+MITM_TIMEOUT = 10               # no mitm connect from device timeout
+PROTO_TIMEOUT = 30              # no data from device timeout
+REBOOT_WAITTIME = 10            # next reboot for a device after this waittime
 
 [Devices]
 DEVICE_0: <ORINGIN_DEVICE_0>;<IP_ADRESS_DEVICE_0>
@@ -42,5 +43,6 @@ PowerOFF_Device_1: http://<IPADRESS_POWER_SWITCH>/<PowerOFFcommand>
 PowerON_Device_2: http://<IPADRESS_POWER_SWITCH>/<PowerONcommand>
 PowerOFF_Device_2: http://<IPADRESS_POWER_SWITCH>/<PowerOFFcommand>
 #### for GPIO mode ####
+RELAY_MODE: <NO or NC>
 GPIO_Device_1: 17
 GPIO_Device_2: 27

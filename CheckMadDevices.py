@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 __author__ = "GhostTalker"
 __copyright__ = "Copyright 2019, The GhostTalker project"
-__version__ = "0.7.2"
+__version__ = "0.8.0"
 __status__ = "Dev"
 
 # generic/built-in and other libs
@@ -32,6 +32,7 @@ class MonitoringItem(object):
     device_list = None
     devices = {}
     device_values = None
+    device_last_reboot = {}
     injection_status = None
     latest_data = None
     response = None
@@ -167,6 +168,19 @@ class MonitoringItem(object):
         past_min_from_now = int(past_min_from_now)
         return past_min_from_now
 
+    def check_last_reboot(self, device_origin):
+        last_reboot_time = self.device_last_reboot.pop(device_origin, "None")
+        if last_reboot_time == "None":
+            return "2019-01-01 00:00:00"
+        else:
+            return last_reboot_time
+
+    def set_device_reboot_time(self, device_origin):
+        dateTimeObj = datetime.now()
+        timestampStr = dateTimeObj.strftime('%Y-%m-%d %H:%M:%S')
+        valueupdate = {device_origin: str(timestampStr)}
+        self.device_last_reboot.update(valueupdate)
+
 
 # Make a class we can use to capture stdout and sterr in the log
 class MyLogger(object):
@@ -212,28 +226,40 @@ if __name__ == '__main__':
         for device_origin in device_origin_list:
             # logging
             print("-------------------------------------------------------------------")
-            print("Device:        {}".format(device_origin))
-            print("Inject:        {}".format(mon_item.read_device_status_values(device_origin)[0]))
-            print("Worker:        {} (Init={})".format(mon_item.read_mad_status_values(device_origin)[0],
-                                                       mon_item.read_mad_status_values(device_origin)[4]))
-            print("LastData:      {} ( {} minutes ago )".format(mon_item.check_time_since_last_data(device_origin)[1],
-                                                                mon_item.check_time_since_last_data(device_origin)[0]))
-            print("LastProtoDate: {} ( {} minutes ago )".format(mon_item.read_mad_status_values(device_origin)[3],
-                                                                mon_item.calc_past_min_from_now(
-                                                                    mon_item.read_mad_status_values(device_origin)[3])))
-            print("LastRestart:   {} ( {} minutes ago )".format(mon_item.read_mad_status_values(device_origin)[2],
-                                                                mon_item.calc_past_min_from_now(
-                                                                    mon_item.read_mad_status_values(device_origin)[2])))
-            print("LastReboot:    {} ( {} minutes ago )".format(mon_item.read_mad_status_values(device_origin)[1],
-                                                                mon_item.calc_past_min_from_now(
-                                                                    mon_item.read_mad_status_values(device_origin)[1])))
+            print("Device:             {}".format(device_origin))
+            print("Inject:             {}".format(mon_item.read_device_status_values(device_origin)[0]))
+            print("Worker:             {} (Init={})".format(mon_item.read_mad_status_values(device_origin)[0],
+                                                            mon_item.read_mad_status_values(device_origin)[4]))
+            print("LastData:           {} ( {} minutes ago )".format(
+                mon_item.check_time_since_last_data(device_origin)[1],
+                mon_item.check_time_since_last_data(device_origin)[0]))
+            print("LastProtoDate:      {} ( {} minutes ago )".format(mon_item.read_mad_status_values(device_origin)[3],
+                                                                     mon_item.calc_past_min_from_now(
+                                                                         mon_item.read_mad_status_values(device_origin)[
+                                                                             3])))
+            print("LastRestartByMAD:   {} ( {} minutes ago )".format(mon_item.read_mad_status_values(device_origin)[2],
+                                                                     mon_item.calc_past_min_from_now(
+                                                                         mon_item.read_mad_status_values(device_origin)[
+                                                                             2])))
+            print("LastRebootByMAD:    {} ( {} minutes ago )".format(mon_item.read_mad_status_values(device_origin)[1],
+                                                                     mon_item.calc_past_min_from_now(
+                                                                         mon_item.read_mad_status_values(device_origin)[
+                                                                             1])))
+            print("LastRebootByScript: {} ( {} minutes ago )".format(mon_item.check_last_reboot(device_origin),
+                                                                     mon_item.calc_past_min_from_now(
+                                                                         mon_item.check_last_reboot(device_origin))))
 
             # do reboot if nessessary
             if mon_item.read_device_status_values(device_origin)[0] == False and mon_item.check_time_since_last_data(
                     device_origin)[0] > int(mon_item.mitm_timeout) or mon_item.calc_past_min_from_now(
                 mon_item.read_mad_status_values(device_origin)[3]) > int(mon_item.proto_timeout):
-                print("Device = {}	will be rebooted now.".format(device_origin))
-                subprocess.Popen(["{}/RebootMadDevice.py".format(get_script_directory()), device_origin])
-                time.sleep(180)
+                if mon_item.calc_past_min_from_now(
+                        mon_item.check_last_reboot(device_origin)) > mon_item.reboot_waittime:
+                    print("Device {} will be rebooted now.".format(device_origin))
+                    mon_item.set_device_reboot_time(device_origin)
+                    subprocess.Popen(["{}/RebootMadDevice.py".format(get_script_directory()), device_origin])
+                else:
+                    print("Device {} was rebooted {} minutes ago. Let it time to initalize completely.".format(
+                        device_origin, check_last_reboot(device_origin)))
             print()
-        time.sleep(600)
+        time.sleep(int(mon_item.sleeptime_between_check))
