@@ -24,6 +24,11 @@ MADMIN_STATUS_ENDPOINT: get_status
 MADMIN_USER: madmin
 MADMIN_PASS: yourpass
 
+[Reboot Options]
+MITM_TIMEOUT = 10    # no mitm connect from device timeout
+PROTO_TIMEOUT = 30   # no data from device timeout
+REBOOT_WAITTIME = 10 # next reboot for a device after this waittime
+
 [Devices]
 DEVICE_0: <ORINGIN_DEVICE_0>;<IP_ADRESS_DEVICE_0>
 DEVICE_1: <ORINGIN_DEVICE_1>;<IP_ADRESS_DEVICE_1>

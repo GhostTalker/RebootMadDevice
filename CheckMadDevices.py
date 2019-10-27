@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 __author__ = "GhostTalker"
 __copyright__ = "Copyright 2019, The GhostTalker project"
-__version__ = "0.7.0"
+__version__ = "0.7.2"
 __status__ = "Dev"
 
 # generic/built-in and other libs
@@ -14,6 +14,15 @@ import subprocess
 import logging
 import logging.handlers
 import datetime
+
+
+# Returns the directory the current script (or interpreter) is running in
+def get_script_directory():
+    path = os.path.realpath(sys.argv[0])
+    if os.path.isdir(path):
+        return path
+    else:
+        return os.path.dirname(path)
 
 
 class MonitoringItem(object):
@@ -221,10 +230,10 @@ if __name__ == '__main__':
 
             # do reboot if nessessary
             if mon_item.read_device_status_values(device_origin)[0] == False and mon_item.check_time_since_last_data(
-                    device_origin)[0] > 10 or mon_item.calc_past_min_from_now(
-                mon_item.read_mad_status_values(device_origin)[3]) > 30:
+                    device_origin)[0] > int(mon_item.mitm_timeout) or mon_item.calc_past_min_from_now(
+                mon_item.read_mad_status_values(device_origin)[3]) > int(mon_item.proto_timeout):
                 print("Device = {}	will be rebooted now.".format(device_origin))
-                subprocess.Popen(["/root/adb_scripts/RebootMadDevice.py", device_origin])
+                subprocess.Popen(["{}/RebootMadDevice.py".format(get_script_directory()), device_origin])
                 time.sleep(180)
             print()
         time.sleep(600)
