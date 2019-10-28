@@ -176,7 +176,7 @@ class MonitoringItem(object):
             return last_reboot_time
 
     def set_device_reboot_time(self, device_origin):
-        dateTimeObj = datetime.now()
+        dateTimeObj = datetime.datetime.now()
         timestampStr = dateTimeObj.strftime('%Y-%m-%d %H:%M:%S')
         valueupdate = {device_origin: str(timestampStr)}
         self.device_last_reboot.update(valueupdate)
