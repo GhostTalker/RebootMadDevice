@@ -253,8 +253,8 @@ if __name__ == '__main__':
             if mon_item.read_device_status_values(device_origin)[0] == False and mon_item.check_time_since_last_data(
                     device_origin)[0] > int(mon_item.mitm_timeout) or mon_item.calc_past_min_from_now(
                 mon_item.read_mad_status_values(device_origin)[3]) > int(mon_item.proto_timeout):
-                if mon_item.calc_past_min_from_now(
-                        mon_item.check_last_reboot(device_origin)) > mon_item.reboot_waittime:
+                if int(mon_item.calc_past_min_from_now(
+                        mon_item.check_last_reboot(device_origin))) > int(mon_item.reboot_waittime):
                     print("Device {} will be rebooted now.".format(device_origin))
                     mon_item.set_device_reboot_time(device_origin)
                     subprocess.Popen(["{}/RebootMadDevice.py".format(get_script_directory()), device_origin])
