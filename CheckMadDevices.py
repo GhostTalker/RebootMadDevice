@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 __author__ = "GhostTalker"
 __copyright__ = "Copyright 2019, The GhostTalker project"
-__version__ = "0.8.0"
+__version__ = "0.8.1"
 __status__ = "Dev"
 
 # generic/built-in and other libs
@@ -169,7 +169,7 @@ class MonitoringItem(object):
         return past_min_from_now
 
     def check_last_reboot(self, device_origin):
-        last_reboot_time = self.device_last_reboot.pop(device_origin, "None")
+        last_reboot_time = self.device_last_reboot.get(device_origin, "None")
         if last_reboot_time == "None":
             return "2019-01-01 00:00:00"
         else:
