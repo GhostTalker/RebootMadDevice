@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 __author__ = "GhostTalker"
 __copyright__ = "Copyright 2019, The GhostTalker project"
-__version__ = "0.8.0"
+__version__ = "0.9.1"
 __status__ = "Dev"
 
 # generic/built-in and other libs
@@ -9,16 +9,37 @@ import configparser
 import os
 import subprocess
 import sys
+import getopt
 import time
 import requests
 import RPi.GPIO as GPIO
 
 # check syntax and arguments
-if (len(sys.argv) < 1 or len(sys.argv) > 2):
-    print('wrong count of arguments')
-    print("RebootMadDevice.py <DEVICE_ORIGIN_TO_REBOOT>")
-    sys.exit(0)
-DEVICE_ORIGIN_TO_REBOOT = (sys.argv[1])
+if (len(sys.argv) < 2 or len(sys.argv) > 4):
+    print('RebootMadDevice.py -o <DEVICE_ORIGIN_TO_REBOOT> [-f]')
+    print('RebootMadDevice.py --origin <DEVICE_ORIGIN_TO_REBOOT> [--force]')
+    sys.exit(1)
+
+
+def main():
+    forceOption = False
+    DEVICE_ORIGIN_TO_REBOOT = ''
+    try:
+        opts, args = getopt.getopt(sys.argv[1:], "ho:f", ["origin=", "force", "help"])
+    except getopt.GetoptError:
+        print('RebootMadDevice.py -o <DEVICE_ORIGIN_TO_REBOOT> [-f]')
+        print('RebootMadDevice.py --origin <DEVICE_ORIGIN_TO_REBOOT> [--force]')
+        sys.exit(2)
+    for opt, arg in opts:
+        if opt in ("-h", "--help"):
+            print('RebootMadDevice.py -o <DEVICE_ORIGIN_TO_REBOOT> [-f]')
+            print('RebootMadDevice.py --origin <DEVICE_ORIGIN_TO_REBOOT> [--force]')
+            sys.exit()
+        elif opt in ("-o", "--origin"):
+            DEVICE_ORIGIN_TO_REBOOT = arg
+        elif opt in ("-f", "--force"):
+            forceOption = True
+    return DEVICE_ORIGIN_TO_REBOOT, forceOption
 
 
 class ConfigItem(object):
@@ -143,10 +164,18 @@ class ConfigItem(object):
 
 
 if __name__ == '__main__':
+    sysparams = main()
     conf_item = ConfigItem()
     device_list = conf_item.create_device_list()
     try_counter = 2
     counter = 0
+    DEVICE_ORIGIN_TO_REBOOT = sysparams[0]
+    forceOption = sysparams[1]
+    print('Origin to reboot is', DEVICE_ORIGIN_TO_REBOOT)
+    print('Force option is', forceOption)
+    if forceOption == True:
+        conf_item.reboot_device_via_power(DEVICE_ORIGIN_TO_REBOOT)
+        sys.exit(0)
     while counter < try_counter:
         if device_list[DEVICE_ORIGIN_TO_REBOOT] in conf_item.list_adb_connected_devices():
             print("Device {} already connected".format(DEVICE_ORIGIN_TO_REBOOT))

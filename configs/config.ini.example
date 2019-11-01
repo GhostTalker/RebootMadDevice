@@ -25,10 +25,16 @@ MADMIN_USER: madmin
 MADMIN_PASS: yourpass
 
 [Reboot Options]
-SLEEPTIME_BETWEEN_CHECK = 300   # time in s between checking all devices
-MITM_TIMEOUT = 10               # no mitm connect from device timeout
-PROTO_TIMEOUT = 30              # no data from device timeout
-REBOOT_WAITTIME = 10            # next reboot for a device after this waittime
+# time in s between checking all devices
+SLEEPTIME_BETWEEN_CHECK = 300
+# no mitm connect from device timeout
+MITM_TIMEOUT = 10
+# no data from device timeout
+PROTO_TIMEOUT = 30
+# force power switch when timeout longer than
+FORCE_REBOOT_TIMEOUT = 45
+# next reboot for a device after this waittime
+REBOOT_WAITTIME = 10
 
 [Devices]
 DEVICE_0: <ORINGIN_DEVICE_0>;<IP_ADRESS_DEVICE_0>

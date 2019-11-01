@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 __author__ = "GhostTalker"
 __copyright__ = "Copyright 2019, The GhostTalker project"
-__version__ = "0.8.2"
+__version__ = "0.9.1"
 __status__ = "Dev"
 
 # generic/built-in and other libs
@@ -254,7 +254,10 @@ if __name__ == '__main__':
                         mon_item.check_last_reboot(device_origin)) > int(mon_item.reboot_waittime):
                     print("Device {} will be rebooted now.".format(device_origin))
                     mon_item.set_device_reboot_time(device_origin)
-                    subprocess.Popen(["{}/RebootMadDevice.py".format(get_script_directory()), device_origin])
+                    if mon_item.calc_past_min_from_now(mon_item.read_mad_status_values(device_origin)[3]) > int(mon_item.force_reboot_timeout):
+                        subprocess.Popen(["{}/RebootMadDevice.py --force --origin {}".format(get_script_directory()), device_origin])
+                    else:
+                        subprocess.Popen(["{}/RebootMadDevice.py --origin {}".format(get_script_directory()), device_origin])
                 else:
                     print("Device {} was rebooted {} minutes ago. Let it time to initalize completely.".format(
                         device_origin, mon_item.calc_past_min_from_now(
