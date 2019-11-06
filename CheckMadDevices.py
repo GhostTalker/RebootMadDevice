@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 __author__ = "GhostTalker"
 __copyright__ = "Copyright 2019, The GhostTalker project"
-__version__ = "0.9.1"
+__version__ = "0.9.3"
 __status__ = "Dev"
 
 # generic/built-in and other libs
@@ -144,18 +144,23 @@ class MonitoringItem(object):
                                            self.madmin_status_endpoint)
         self.check_status_page(check_url, self.madmin_user, self.madmin_pass)
 
-        # Read Values
-        counter = 0;
-        json_respond = self.check_status_page(check_url, self.madmin_user, self.madmin_pass).json()
-        while json_respond[counter]["origin"] != device_origin:
-            counter += 1
-        else:
-            devices_route_manager = (json_respond[counter]["routemanager"])
-            device_last_reboot = (json_respond[counter]["lastPogoReboot"])
-            device_last_restart = (json_respond[counter]["lastPogoRestart"])
-            device_last_proto = (json_respond[counter]["lastProtoDateTime"])
-            device_route_init = (json_respond[counter]["init"])
-            return devices_route_manager, device_last_reboot, device_last_restart, device_last_proto, device_route_init
+        try:
+            # Read Values
+            counter = 0;
+            json_respond = self.check_status_page(check_url, self.madmin_user, self.madmin_pass).json()
+            while json_respond[counter]["origin"] != device_origin:
+                counter += 1
+            else:
+                devices_route_manager = (json_respond[counter]["routemanager"])
+                device_last_reboot = (json_respond[counter]["lastPogoReboot"])
+                device_last_restart = (json_respond[counter]["lastPogoRestart"])
+                device_last_proto = (json_respond[counter]["lastProtoDateTime"])
+                device_route_init = (json_respond[counter]["init"])
+                return devices_route_manager, device_last_reboot, device_last_restart, device_last_proto, device_route_init
+        except IndexError:
+            print("IndexError: list index out of range")
+            print("retry to read mad status values from status page")
+            self.read_mad_status_values(device_origin)
 
     def calc_past_min_from_now(self, timedate):
         """ calculate time between now and given timedate """
@@ -255,9 +260,17 @@ if __name__ == '__main__':
                     print("Device {} will be rebooted now.".format(device_origin))
                     mon_item.set_device_reboot_time(device_origin)
                     if mon_item.calc_past_min_from_now(mon_item.read_mad_status_values(device_origin)[3]) > int(mon_item.force_reboot_timeout):
-                        subprocess.Popen(["{}/RebootMadDevice.py --force --origin {}".format(get_script_directory()), device_origin])
+                        cmd = "{}/RebootMadDevice.py --force --origin {}".format(get_script_directory(), device_origin)
+                        try:
+                            subprocess.check_output([cmd], shell=True)
+                        except subprocess.CalledProcessError:
+                            print("Failed to call reboot script with force option")
                     else:
-                        subprocess.Popen(["{}/RebootMadDevice.py --origin {}".format(get_script_directory()), device_origin])
+                        cmd = "{}/RebootMadDevice.py --origin {}".format(get_script_directory(), device_origin)
+                        try:
+                            subprocess.check_output([cmd], shell=True)
+                        except subprocess.CalledProcessError:
+                            print("Failed to call reboot script")
                 else:
                     print("Device {} was rebooted {} minutes ago. Let it time to initalize completely.".format(
                         device_origin, mon_item.calc_past_min_from_now(
