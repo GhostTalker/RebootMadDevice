@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 __author__ = "GhostTalker"
 __copyright__ = "Copyright 2019, The GhostTalker project"
-__version__ = "0.9.3"
+__version__ = "0.9.5"
 __status__ = "Dev"
 
 # generic/built-in and other libs
@@ -82,15 +82,9 @@ class MonitoringItem(object):
         try:
             response = requests.get(check_url, auth=(auth_user, auth_pass))
             response.raise_for_status()
-            if response is None:
-                print("Response is null. Retry in 5s...")
-                time.sleep(5)
-                self.check_status_page(check_url, auth_user, auth_pass)
-            elif response.status_code == 200:
-                return response
-            else:
-                time.sleep(30)
+            if response.status_code != 200:
                 print("Statuscode is {}, not 200. Retry connect to statuspage...".format(response.status_code))
+                time.sleep(30)
                 self.check_status_page(check_url, auth_user, auth_pass)
         except requests.exceptions.HTTPError as errh:
             print("Http Error:", errh)
@@ -113,13 +107,23 @@ class MonitoringItem(object):
             time.sleep(30)
             self.check_status_page(check_url, auth_user, auth_pass)
 
+        try:
+            return response.json()
+        except:
+            time.sleep(10)
+            self.check_status_page(check_url, auth_user, auth_pass)
+
     def read_device_status_values(self, device_origin):
         """ Read Values for a device from MITM status page """
         check_url = "{}://{}:{}/{}/".format(self.mitm_proto, self.mitm_receiver_ip, self.mitm_receiver_port,
                                             self.mitm_receiver_status_endpoint)
-        self.check_status_page(check_url, self.mitm_user, self.mitm_pass)
         # Read Values
-        json_respond = self.check_status_page(check_url, self.mitm_user, self.mitm_pass).json()
+        json_respond = self.check_status_page(check_url, self.madmin_user, self.madmin_pass)
+        while json_respond is None:
+            print("Response of status page is null. Retry in 5s...")
+            time.sleep(5)
+            json_respond = self.check_status_page(check_url, self.madmin_user, self.madmin_pass)
+
         devices = (json_respond["origin_status"])
         device_values = (devices[device_origin])
         injection_status = (device_values["injection_status"])
@@ -142,12 +146,15 @@ class MonitoringItem(object):
         """ Read Values for a device from MITM status page """
         check_url = "{}://{}:{}/{}".format(self.madmin_proto, self.madmin_ip, self.madmin_port,
                                            self.madmin_status_endpoint)
-        self.check_status_page(check_url, self.madmin_user, self.madmin_pass)
+        json_respond = self.check_status_page(check_url, self.madmin_user, self.madmin_pass)
+        while json_respond is None:
+            print("Response is null. Retry in 5s...")
+            time.sleep(5)
+            json_respond = self.check_status_page(check_url, self.madmin_user, self.madmin_pass)
 
         try:
             # Read Values
             counter = 0;
-            json_respond = self.check_status_page(check_url, self.madmin_user, self.madmin_pass).json()
             while json_respond[counter]["origin"] != device_origin:
                 counter += 1
             else:
@@ -259,7 +266,8 @@ if __name__ == '__main__':
                         mon_item.check_last_reboot(device_origin)) > int(mon_item.reboot_waittime):
                     print("Device {} will be rebooted now.".format(device_origin))
                     mon_item.set_device_reboot_time(device_origin)
-                    if mon_item.calc_past_min_from_now(mon_item.read_mad_status_values(device_origin)[3]) > int(mon_item.force_reboot_timeout):
+                    if mon_item.calc_past_min_from_now(mon_item.read_mad_status_values(device_origin)[3]) > int(
+                            mon_item.force_reboot_timeout):
                         cmd = "{}/RebootMadDevice.py --force --origin {}".format(get_script_directory(), device_origin)
                         try:
                             subprocess.check_output([cmd], shell=True)
@@ -274,6 +282,6 @@ if __name__ == '__main__':
                 else:
                     print("Device {} was rebooted {} minutes ago. Let it time to initalize completely.".format(
                         device_origin, mon_item.calc_past_min_from_now(
-                        mon_item.check_last_reboot(device_origin))))
+                            mon_item.check_last_reboot(device_origin))))
             print()
         time.sleep(int(mon_item.sleeptime_between_check))
