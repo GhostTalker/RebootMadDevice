@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 __author__ = "GhostTalker"
 __copyright__ = "Copyright 2019, The GhostTalker project"
-__version__ = "0.9.3"
+__version__ = "0.10.1"
 __status__ = "Dev"
 
 # generic/built-in and other libs
@@ -122,6 +122,20 @@ class ConfigItem(object):
                 GPIO.output(gpionr, GPIO.HIGH)
             else:
                 print("wrong relay_mode in config")
+        elif powerswitch_dict['''switch_mode'''] == 'CMD':
+            poweron = "poweron_{}".format(dev_nr)
+            poweroff = "poweroff_{}".format(dev_nr)
+            print("fire command for PowerSwitch off")
+            try:
+                subprocess.check_output([powerswitch_dict[poweroff]], shell=True)
+            except subprocess.CalledProcessError:
+                print("failed to fire command")
+            time.sleep(5)
+            print("fire command for PowerSwitch on")
+            try:
+                subprocess.check_output([powerswitch_dict[poweron]], shell=True)
+            except subprocess.CalledProcessError:
+                print("failed to fire command")
         else:
             print("no PowerSwitch configured. Do it manually!!!")
 
