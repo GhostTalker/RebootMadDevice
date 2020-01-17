@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 __author__ = "GhostTalker"
 __copyright__ = "Copyright 2019, The GhostTalker project"
-__version__ = "0.9.5"
+__version__ = "0.9.7"
 __status__ = "Dev"
 
 # generic/built-in and other libs
@@ -155,13 +155,16 @@ class MonitoringItem(object):
         try:
             # Read Values
             counter = 0;
-            while json_respond[counter]["origin"] != device_origin:
+            while json_respond[counter]["name"] != device_origin:
                 counter += 1
             else:
-                devices_route_manager = (json_respond[counter]["routemanager"])
-                device_last_reboot = (json_respond[counter]["lastPogoReboot"])
-                device_last_restart = (json_respond[counter]["lastPogoRestart"])
-                device_last_proto = (json_respond[counter]["lastProtoDateTime"])
+                devices_route_manager = (json_respond[counter]["rmname"])
+                device_last_reboot = datetime.datetime.fromtimestamp(
+                    (json_respond[counter]["lastPogoReboot"])).strftime('%Y-%m-%d %H:%M:%S')
+                device_last_restart = datetime.datetime.fromtimestamp(
+                    (json_respond[counter]["lastPogoRestart"])).strftime('%Y-%m-%d %H:%M:%S')
+                device_last_proto = datetime.datetime.fromtimestamp(
+                    (json_respond[counter]["lastProtoDateTime"])).strftime('%Y-%m-%d %H:%M:%S')
                 device_route_init = (json_respond[counter]["init"])
                 return devices_route_manager, device_last_reboot, device_last_restart, device_last_proto, device_route_init
         except IndexError:
@@ -270,15 +273,19 @@ if __name__ == '__main__':
                             mon_item.force_reboot_timeout):
                         cmd = "{}/RebootMadDevice.py --force --origin {}".format(get_script_directory(), device_origin)
                         try:
-                            subprocess.check_output([cmd], shell=True)
+                            subprocess.check_output([cmd], shell=True, timeout=120)
                         except subprocess.CalledProcessError:
                             print("Failed to call reboot script with force option")
+                        except subprocess.TimeoutExpired:
+                            print("Reboot-script runs in timeout.")
                     else:
                         cmd = "{}/RebootMadDevice.py --origin {}".format(get_script_directory(), device_origin)
                         try:
-                            subprocess.check_output([cmd], shell=True)
+                            subprocess.check_output([cmd], shell=True, timeout=120)
                         except subprocess.CalledProcessError:
                             print("Failed to call reboot script")
+                        except subprocess.TimeoutExpired:
+                            print("Reboot-script runs in timeout.")
                 else:
                     print("Device {} was rebooted {} minutes ago. Let it time to initalize completely.".format(
                         device_origin, mon_item.calc_past_min_from_now(
