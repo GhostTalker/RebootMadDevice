@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 __author__ = "GhostTalker"
 __copyright__ = "Copyright 2019, The GhostTalker project"
-__version__ = "0.9.8"
+__version__ = "0.9.9"
 __status__ = "Dev"
 
 # generic/built-in and other libs
@@ -118,11 +118,11 @@ class MonitoringItem(object):
         check_url = "{}://{}:{}/{}/".format(self.mitm_proto, self.mitm_receiver_ip, self.mitm_receiver_port,
                                             self.mitm_receiver_status_endpoint)
         # Read Values
-        json_respond = self.check_status_page(check_url, self.madmin_user, self.madmin_pass)
+        json_respond = self.check_status_page(check_url, self.mitm_user, self.mitm_pass)
         while json_respond is None:
             print("Response of status page is null. Retry in 5s...")
             time.sleep(5)
-            json_respond = self.check_status_page(check_url, self.madmin_user, self.madmin_pass)
+            json_respond = self.check_status_page(check_url, self.mitm_user, self.mitm_pass)
 
         devices = (json_respond["origin_status"])
         device_values = (devices[device_origin])
@@ -143,7 +143,7 @@ class MonitoringItem(object):
         return min_since_last_data, latest_data_hr
 
     def read_mad_status_values(self, device_origin):
-        """ Read Values for a device from MITM status page """
+        """ Read Values for a device from MADMIN status page """
         check_url = "{}://{}:{}/{}".format(self.madmin_proto, self.madmin_ip, self.madmin_port,
                                            self.madmin_status_endpoint)
         json_respond = self.check_status_page(check_url, self.madmin_user, self.madmin_pass)
