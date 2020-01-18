@@ -80,7 +80,7 @@ class MonitoringItem(object):
         response = ""
 
         try:
-            response = requests.get(check_url, auth=(auth_user, auth_pass))
+            response = requests.get(check_url, auth=requests.auth.HTTPBasicAuth(auth_user, auth_pass))
             response.raise_for_status()
             if response.status_code != 200:
                 print("Statuscode is {}, not 200. Retry connect to statuspage...".format(response.status_code))
