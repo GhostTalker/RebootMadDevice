@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 __author__ = "GhostTalker"
 __copyright__ = "Copyright 2019, The GhostTalker project"
-__version__ = "0.9.9"
-__status__ = "Dev"
+__version__ = "1.0.0"
+__status__ = "Prod"
 
 # generic/built-in and other libs
 import configparser
@@ -83,27 +83,28 @@ class MonitoringItem(object):
             response = requests.get(check_url, auth=requests.auth.HTTPBasicAuth(auth_user, auth_pass))
             response.raise_for_status()
             if response.status_code != 200:
-                print("Statuscode is {}, not 200. Retry connect to statuspage...".format(response.status_code))
+                logging.warning(
+                    "Statuscode is {}, not 200. Retry connect to statuspage...".format(response.status_code))
                 time.sleep(30)
                 self.check_status_page(check_url, auth_user, auth_pass)
         except requests.exceptions.HTTPError as errh:
-            print("Http Error:", errh)
-            print("Retry connect to statuspage in 10s...")
+            logging.error("Http Error:", errh)
+            logging.error("Retry connect to statuspage in 10s...")
             time.sleep(10)
             self.check_status_page(check_url, auth_user, auth_pass)
         except requests.exceptions.ConnectionError as errc:
-            print("Error Connecting:", errc)
-            print("Retry connect to statuspage in 30s...")
+            logging.error("Error Connecting:", errc)
+            logging.error("Retry connect to statuspage in 30s...")
             time.sleep(30)
             self.check_status_page(check_url, auth_user, auth_pass)
         except requests.exceptions.Timeout as errt:
-            print("Timeout Error:", errt)
-            print("Retry connect to statuspage in 10s...")
+            logging.error("Timeout Error:", errt)
+            logging.error("Retry connect to statuspage in 10s...")
             time.sleep(10)
             self.check_status_page(check_url, auth_user, auth_pass)
         except requests.exceptions.RequestException as err:
-            print("OOps: Something Else", err)
-            print("Retry connect to statuspage in 30s...")
+            logging.error("OOps: Something Else", err)
+            logging.error("Retry connect to statuspage in 30s...")
             time.sleep(30)
             self.check_status_page(check_url, auth_user, auth_pass)
 
@@ -120,7 +121,7 @@ class MonitoringItem(object):
         # Read Values
         json_respond = self.check_status_page(check_url, self.mitm_user, self.mitm_pass)
         while json_respond is None:
-            print("Response of status page is null. Retry in 5s...")
+            logging.warning("Response of status page is null. Retry in 5s...")
             time.sleep(5)
             json_respond = self.check_status_page(check_url, self.mitm_user, self.mitm_pass)
 
@@ -148,7 +149,7 @@ class MonitoringItem(object):
                                            self.madmin_status_endpoint)
         json_respond = self.check_status_page(check_url, self.madmin_user, self.madmin_pass)
         while json_respond is None:
-            print("Response is null. Retry in 5s...")
+            logging.warning("Response is null. Retry in 5s...")
             time.sleep(5)
             json_respond = self.check_status_page(check_url, self.madmin_user, self.madmin_pass)
 
@@ -168,8 +169,8 @@ class MonitoringItem(object):
                 device_route_init = (json_respond[counter]["init"])
                 return devices_route_manager, device_last_reboot, device_last_restart, device_last_proto, device_route_init
         except IndexError:
-            print("IndexError: list index out of range")
-            print("retry to read mad status values from status page")
+            logging.error("IndexError: list index out of range")
+            logging.error("retry to read mad status values from status page")
             self.read_mad_status_values(device_origin)
 
     def calc_past_min_from_now(self, timedate):
@@ -221,8 +222,10 @@ if __name__ == '__main__':
     logger.addHandler(handler)
 
     # redirect stdout and stderr to logfile
-    sys.stdout = MyLogger(logger, logging.INFO)
-    sys.stderr = MyLogger(logger, logging.ERROR)
+
+    if mon_item.log_console_only == "False":
+        sys.stdout = MyLogger(logger, logging.INFO)
+        sys.stderr = MyLogger(logger, logging.ERROR)
 
     # check and reboot device if nessessary
 
@@ -267,28 +270,30 @@ if __name__ == '__main__':
                 mon_item.read_mad_status_values(device_origin)[3]) > int(mon_item.proto_timeout):
                 if mon_item.calc_past_min_from_now(
                         mon_item.check_last_reboot(device_origin)) > int(mon_item.reboot_waittime):
-                    print("Device {} will be rebooted now.".format(device_origin))
+                    logging.warning("Device {} will be rebooted now.".format(device_origin))
                     mon_item.set_device_reboot_time(device_origin)
                     if mon_item.calc_past_min_from_now(mon_item.read_mad_status_values(device_origin)[3]) > int(
                             mon_item.force_reboot_timeout):
                         cmd = "{}/RebootMadDevice.py --force --origin {}".format(get_script_directory(), device_origin)
+                        logging.critical("Force option will be used.")
                         try:
                             subprocess.check_output([cmd], shell=True, timeout=120)
                         except subprocess.CalledProcessError:
-                            print("Failed to call reboot script with force option")
+                            logging.error("Failed to call reboot script with force option")
                         except subprocess.TimeoutExpired:
-                            print("Reboot-script runs in timeout.")
+                            logging.error("Reboot-script runs in timeout.")
                     else:
                         cmd = "{}/RebootMadDevice.py --origin {}".format(get_script_directory(), device_origin)
                         try:
                             subprocess.check_output([cmd], shell=True, timeout=120)
                         except subprocess.CalledProcessError:
-                            print("Failed to call reboot script")
+                            logging.error("Failed to call reboot script")
                         except subprocess.TimeoutExpired:
-                            print("Reboot-script runs in timeout.")
+                            logging.error("Reboot-script runs in timeout.")
                 else:
-                    print("Device {} was rebooted {} minutes ago. Let it time to initalize completely.".format(
-                        device_origin, mon_item.calc_past_min_from_now(
-                            mon_item.check_last_reboot(device_origin))))
-            print()
+                    logging.warning(
+                        "Device {} was rebooted {} minutes ago. Let it time to initalize completely.".format(
+                            device_origin, mon_item.calc_past_min_from_now(
+                                mon_item.check_last_reboot(device_origin))))
+            print("")
         time.sleep(int(mon_item.sleeptime_between_check))
