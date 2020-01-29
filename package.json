@@ -1,7 +1,7 @@
 {
   "name": "RebootMadDevices",
-  "version": "0.9.9",
+  "version": "1.0.1",
   "author": "GhostTalker",
   "copyright": "Copyright 2019, The GhostTalker project"
-  "status": "Dev"
+  "status": "Prod"
 }
