@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 __author__ = "GhostTalker"
 __copyright__ = "Copyright 2019, The GhostTalker project"
-__version__ = "1.0.0"
+__version__ = "1.0.1"
 __status__ = "Prod"
 
 # generic/built-in and other libs
@@ -195,74 +195,71 @@ class MonitoringItem(object):
         self.device_last_reboot.update(valueupdate)
 
 
-# Make a class we can use to capture stdout and sterr in the log
-class MyLogger(object):
-    def __init__(self, logger, level):
-        """Needs a logger and a logger level."""
-        self.logger = logger
-        self.level = level
+def create_timed_rotating_log(log_file):
+    logging.basicConfig(filename=log_file, filemode='a', format='%(asctime)s %(levelname)-8s %(message)s',
+                        level=logging.getLevelName(mon_item.log_level))
+    logger = logging.getLogger(__name__)
+    file_handler = logging.handlers.TimedRotatingFileHandler(log_file, when="midnight", backupCount=3)
+    logger.addHandler(file_handler)
 
-    def write(self, message):
-        # Only log if there is a message (not just a new line)
-        if message.rstrip() != "":
-            self.logger.log(self.level, message.rstrip())
 
-    def flush(self):
-        pass
+def create_stdout_log():
+    logging.basicConfig(format='%(asctime)s %(levelname)-8s %(message)s',
+                        level=logging.getLevelName(mon_item.log_level))
+    logger = logging.getLogger(__name__)
+    stdout_handler = logging.StreamHandler(sys.stdout)
+    logger.addHandler(stdout_handler)
 
 
 if __name__ == '__main__':
     mon_item = MonitoringItem()
 
-    # Logging params
-    logger = logging.getLogger(__name__)
-    logger.setLevel(logging.getLevelName(mon_item.log_level))
-    handler = logging.handlers.TimedRotatingFileHandler(mon_item.log_filename, when="midnight", backupCount=3)
-    handler.setFormatter(logging.Formatter('%(asctime)s %(levelname)-8s %(message)s'))
-    logger.addHandler(handler)
-
-    # redirect stdout and stderr to logfile
-
-    if mon_item.log_console_only == "False":
-        sys.stdout = MyLogger(logger, logging.INFO)
-        sys.stderr = MyLogger(logger, logging.ERROR)
+    # Logging Options
+    if mon_item.log_console_only == "True":
+        create_stdout_log()
+    else:
+        create_timed_rotating_log(mon_item.log_filename)
 
     # check and reboot device if nessessary
 
-    print(" ")
-    print(" ")
-    print("===================================================================")
-    print("=           MAD - Check and Reboot - Daemon started               =")
-    print("===================================================================")
-    print(" ")
+    logging.info(" ")
+    logging.info(" ")
+    logging.info("===================================================================")
+    logging.info("=           MAD - Check and Reboot - Daemon started               =")
+    logging.info("===================================================================")
+    logging.info(" ")
 
     while 1:
         device_origin_list = mon_item.create_device_origin_list()
         for device_origin in device_origin_list:
             # logging
-            print("-------------------------------------------------------------------")
-            print("Device:             {}".format(device_origin))
-            print("Inject:             {}".format(mon_item.read_device_status_values(device_origin)[0]))
-            print("Worker:             {} (Init={})".format(mon_item.read_mad_status_values(device_origin)[0],
-                                                            mon_item.read_mad_status_values(device_origin)[4]))
-            print("LastData:           {} ( {} minutes ago )".format(
+            logging.info("-------------------------------------------------------------------")
+            logging.info("Device:             {}".format(device_origin))
+            logging.info("Inject:             {}".format(mon_item.read_device_status_values(device_origin)[0]))
+            logging.info("Worker:             {} (Init={})".format(mon_item.read_mad_status_values(device_origin)[0],
+                                                                   mon_item.read_mad_status_values(device_origin)[4]))
+            logging.info("LastData:           {} ( {} minutes ago )".format(
                 mon_item.check_time_since_last_data(device_origin)[1],
                 mon_item.check_time_since_last_data(device_origin)[0]))
-            print("LastProtoDate:      {} ( {} minutes ago )".format(mon_item.read_mad_status_values(device_origin)[3],
-                                                                     mon_item.calc_past_min_from_now(
-                                                                         mon_item.read_mad_status_values(device_origin)[
-                                                                             3])))
-            print("LastRestartByMAD:   {} ( {} minutes ago )".format(mon_item.read_mad_status_values(device_origin)[2],
-                                                                     mon_item.calc_past_min_from_now(
-                                                                         mon_item.read_mad_status_values(device_origin)[
-                                                                             2])))
-            print("LastRebootByMAD:    {} ( {} minutes ago )".format(mon_item.read_mad_status_values(device_origin)[1],
-                                                                     mon_item.calc_past_min_from_now(
-                                                                         mon_item.read_mad_status_values(device_origin)[
-                                                                             1])))
-            print("LastRebootByScript: {} ( {} minutes ago )".format(mon_item.check_last_reboot(device_origin),
-                                                                     mon_item.calc_past_min_from_now(
-                                                                         mon_item.check_last_reboot(device_origin))))
+            logging.info(
+                "LastProtoDate:      {} ( {} minutes ago )".format(mon_item.read_mad_status_values(device_origin)[3],
+                                                                   mon_item.calc_past_min_from_now(
+                                                                       mon_item.read_mad_status_values(device_origin)[
+                                                                           3])))
+            logging.info(
+                "LastRestartByMAD:   {} ( {} minutes ago )".format(mon_item.read_mad_status_values(device_origin)[2],
+                                                                   mon_item.calc_past_min_from_now(
+                                                                       mon_item.read_mad_status_values(device_origin)[
+                                                                           2])))
+            logging.info(
+                "LastRebootByMAD:    {} ( {} minutes ago )".format(mon_item.read_mad_status_values(device_origin)[1],
+                                                                   mon_item.calc_past_min_from_now(
+                                                                       mon_item.read_mad_status_values(device_origin)[
+                                                                           1])))
+            logging.info("LastRebootByScript: {} ( {} minutes ago )".format(mon_item.check_last_reboot(device_origin),
+                                                                            mon_item.calc_past_min_from_now(
+                                                                                mon_item.check_last_reboot(
+                                                                                    device_origin))))
 
             # do reboot if nessessary
             if mon_item.read_device_status_values(device_origin)[0] == False and mon_item.check_time_since_last_data(
