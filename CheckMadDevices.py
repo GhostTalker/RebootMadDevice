@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 __author__ = "GhostTalker"
 __copyright__ = "Copyright 2019, The GhostTalker project"
-__version__ = "1.0.1"
+__version__ = "1.0.2"
 __status__ = "Prod"
 
 # generic/built-in and other libs
@@ -160,13 +160,22 @@ class MonitoringItem(object):
                 counter += 1
             else:
                 devices_route_manager = (json_respond[counter]["rmname"])
-                device_last_reboot = datetime.datetime.fromtimestamp(
+                if json_respond[counter]["lastPogoReboot"] is None:
+                    device_last_reboot = "2019-01-01 00:00:00"
+                else:
+                    device_last_reboot = datetime.datetime.fromtimestamp(
                     (json_respond[counter]["lastPogoReboot"])).strftime('%Y-%m-%d %H:%M:%S')
-                device_last_restart = datetime.datetime.fromtimestamp(
+                if json_respond[counter]["lastPogoRestart"] is None:
+                    device_last_restart = "2019-01-01 00:00:00"
+                else:
+                    device_last_restart = datetime.datetime.fromtimestamp(
                     (json_respond[counter]["lastPogoRestart"])).strftime('%Y-%m-%d %H:%M:%S')
-                device_last_proto = datetime.datetime.fromtimestamp(
+                if json_respond[counter]["lastProtoDateTime"] is None:
+                    device_last_proto = "2019-01-01 00:00:00"
+                else:
+                    device_last_proto = datetime.datetime.fromtimestamp(
                     (json_respond[counter]["lastProtoDateTime"])).strftime('%Y-%m-%d %H:%M:%S')
-                device_route_init = (json_respond[counter]["init"])
+                    device_route_init = (json_respond[counter]["init"])
                 return devices_route_manager, device_last_reboot, device_last_restart, device_last_proto, device_route_init
         except IndexError:
             logging.error("IndexError: list index out of range")
