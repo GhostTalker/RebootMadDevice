@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 __author__ = "GhostTalker"
 __copyright__ = "Copyright 2019, The GhostTalker project"
-__version__ = "1.0.2"
+__version__ = "1.0.3"
 __status__ = "Prod"
 
 # generic/built-in and other libs
@@ -175,7 +175,7 @@ class MonitoringItem(object):
                 else:
                     device_last_proto = datetime.datetime.fromtimestamp(
                     (json_respond[counter]["lastProtoDateTime"])).strftime('%Y-%m-%d %H:%M:%S')
-                    device_route_init = (json_respond[counter]["init"])
+                device_route_init = (json_respond[counter]["init"])
                 return devices_route_manager, device_last_reboot, device_last_restart, device_last_proto, device_route_init
         except IndexError:
             logging.error("IndexError: list index out of range")
