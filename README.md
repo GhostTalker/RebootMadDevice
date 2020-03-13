@@ -1,5 +1,5 @@
 # RebootMadDevice
-Reboot MAD devices via ADB when device is not responding
+Reboot MAD devices via ADB or PowerSwitch when device is not responding
 
 only works with Python 3.6 and above
 
