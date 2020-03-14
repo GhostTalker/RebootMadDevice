@@ -9,7 +9,7 @@ ADB_PATH: /usr/bin
 ADB_PORT: 5555
 LOG_CONSOLE_ONLY: <True/False>
 LOG_FILENAME: CheckMadDevices.log
-LOG_LEVEL: DEBUG
+LOG_LEVEL: INFO
 
 [MAD server]
 MITM_PROTO: http
