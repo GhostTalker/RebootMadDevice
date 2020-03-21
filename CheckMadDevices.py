@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 __author__ = "GhostTalker"
 __copyright__ = "Copyright 2019, The GhostTalker project"
-__version__ = "1.0.3"
+__version__ = "1.1.0"
 __status__ = "Prod"
 
 # generic/built-in and other libs
@@ -14,6 +14,7 @@ import subprocess
 import logging
 import logging.handlers
 import datetime
+from discord_webhook import DiscordWebhook, DiscordEmbed
 
 
 # Returns the directory the current script (or interpreter) is running in
@@ -164,17 +165,17 @@ class MonitoringItem(object):
                     device_last_reboot = "2019-01-01 00:00:00"
                 else:
                     device_last_reboot = datetime.datetime.fromtimestamp(
-                    (json_respond[counter]["lastPogoReboot"])).strftime('%Y-%m-%d %H:%M:%S')
+                        (json_respond[counter]["lastPogoReboot"])).strftime('%Y-%m-%d %H:%M:%S')
                 if json_respond[counter]["lastPogoRestart"] is None:
                     device_last_restart = "2019-01-01 00:00:00"
                 else:
                     device_last_restart = datetime.datetime.fromtimestamp(
-                    (json_respond[counter]["lastPogoRestart"])).strftime('%Y-%m-%d %H:%M:%S')
+                        (json_respond[counter]["lastPogoRestart"])).strftime('%Y-%m-%d %H:%M:%S')
                 if json_respond[counter]["lastProtoDateTime"] is None:
                     device_last_proto = "2019-01-01 00:00:00"
                 else:
                     device_last_proto = datetime.datetime.fromtimestamp(
-                    (json_respond[counter]["lastProtoDateTime"])).strftime('%Y-%m-%d %H:%M:%S')
+                        (json_respond[counter]["lastProtoDateTime"])).strftime('%Y-%m-%d %H:%M:%S')
                 device_route_init = (json_respond[counter]["init"])
                 return devices_route_manager, device_last_reboot, device_last_restart, device_last_proto, device_route_init
         except IndexError:
@@ -218,6 +219,62 @@ def create_stdout_log():
     logger = logging.getLogger(__name__)
     stdout_handler = logging.StreamHandler(sys.stdout)
     logger.addHandler(stdout_handler)
+
+
+def create_webhook(web_hook_url, device_origin, script_output):
+    # decode returncode for information
+
+    script_output = str(script_output).replace("b'", "").replace("\\n'", "")
+    script_output_len = len(script_output)
+    returncode = script_output[script_output_len - 3:script_output_len]
+
+    # EXIT Code 100 = Reboot via adb
+    # EXIT Code 200 = Reboot via HTML
+    # EXIT Code 300 = Reboot via GPIO
+    # EXIT Code 400 = Reboot via i2c
+    # EXIT Code 500 = Reboot via cmd
+    # EXIT Code +50 = force Option
+    if returncode == '100':
+        reboot_type = 'ADB'
+        force_option = 'no'
+    elif returncode == '200':
+        reboot_type = 'HTML'
+        force_option = 'no'
+    elif returncode == '250':
+        reboot_type = 'HTML'
+        force_option = 'yes'
+    elif returncode == '300':
+        reboot_type = 'GPIO'
+        force_option = 'no'
+    elif returncode == '350':
+        reboot_type = 'HTML'
+        force_option = 'yes'
+    elif returncode == '400':
+        reboot_type = 'I2C'
+        force_option = 'no'
+    elif returncode == '450':
+        reboot_type = 'I2C'
+        force_option = 'yes'
+    elif returncode == '500':
+        reboot_type = 'CMD'
+        force_option = 'no'
+    elif returncode == '550':
+        reboot_type = 'CMD'
+        force_option = 'yes'
+
+    # create embed object for webhook
+    webhook = DiscordWebhook(url=web_hook_url)
+    embed = DiscordEmbed(description='Device Reboot executed', color=242424)
+    embed.set_author(name='RebootMadDevice', url='https://github.com/GhostTalker',
+                     icon_url='https://avatars2.githubusercontent.com/u/49254289')
+    embed.set_footer(text='')
+    embed.set_timestamp()
+    embed.add_embed_field(name='Device', value=device_origin)
+    embed.add_embed_field(name='Reboot', value=reboot_type)
+    embed.add_embed_field(name='Force', value=force_option)
+    # add embed object to webhook
+    webhook.add_embed(embed)
+    webhook.execute()
 
 
 if __name__ == '__main__':
@@ -283,7 +340,9 @@ if __name__ == '__main__':
                         cmd = "{}/RebootMadDevice.py --force --origin {}".format(get_script_directory(), device_origin)
                         logging.critical("Force option will be used.")
                         try:
-                            subprocess.check_output([cmd], shell=True, timeout=120)
+                            script_output = subprocess.check_output([cmd], shell=True, timeout=120)
+                            if mon_item.webhook_enable == "True":
+                                create_webhook(mon_item.webhookurl, device_origin, script_output)
                         except subprocess.CalledProcessError:
                             logging.error("Failed to call reboot script with force option")
                         except subprocess.TimeoutExpired:
@@ -291,7 +350,9 @@ if __name__ == '__main__':
                     else:
                         cmd = "{}/RebootMadDevice.py --origin {}".format(get_script_directory(), device_origin)
                         try:
-                            subprocess.check_output([cmd], shell=True, timeout=120)
+                            script_output = subprocess.check_output([cmd], shell=True, timeout=120)
+                            if mon_item.webhook_enable == "True":
+                                create_webhook(mon_item.webhookurl, device_origin, script_output)
                         except subprocess.CalledProcessError:
                             logging.error("Failed to call reboot script")
                         except subprocess.TimeoutExpired:

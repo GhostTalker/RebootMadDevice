@@ -11,6 +11,10 @@ LOG_CONSOLE_ONLY: <True/False>
 LOG_FILENAME: CheckMadDevices.log
 LOG_LEVEL: INFO
 
+[Discord]
+WEBHOOK_ENABLE: <True/False>
+WEBHOOKURL: 'https://discordapp.com/api/webhooks/xxxxxxxxxxx'
+
 [MAD server]
 MITM_PROTO: http
 MITM_RECEIVER_IP: 127.0.0.1

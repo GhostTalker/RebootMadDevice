@@ -9,6 +9,7 @@ Install:
 - adjust CheckMadDevicesDaemon.sh with install path
 
 Whats new:
+- added Discord Webhook support
 - timeout can now be configured in config.ini
 - path for reboot script automaticly set
 - next reboot of a device only after defined timeframe

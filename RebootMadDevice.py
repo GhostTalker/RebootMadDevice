@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 __author__ = "GhostTalker"
 __copyright__ = "Copyright 2019, The GhostTalker project"
-__version__ = "0.10.1"
+__version__ = "0.11.0"
 __status__ = "Dev"
 
 # generic/built-in and other libs
@@ -80,6 +80,7 @@ class ConfigItem(object):
         print("rebooting Device {}. Please wait".format(DEVICE_ORIGIN_TO_REBOOT))
         try:
             subprocess.check_output([cmd], shell=True)
+            return 100
         except subprocess.CalledProcessError:
             print("rebooting Device {} via ADB not possible. Using PowerSwitch...".format(DEVICE_ORIGIN_TO_REBOOT))
             self.reboot_device_via_power(DEVICE_ORIGIN_TO_REBOOT)
@@ -102,6 +103,7 @@ class ConfigItem(object):
             time.sleep(5)
             print("turn HTTP PowerSwitch on")
             requests.get(powerswitch_dict[poweron])
+            return 200
         elif powerswitch_dict['''switch_mode'''] == 'GPIO':
             gpioname = "gpio_{}".format(dev_nr)
             gpionr = int(powerswitch_dict[gpioname])
@@ -122,6 +124,7 @@ class ConfigItem(object):
                 GPIO.output(gpionr, GPIO.HIGH)
             else:
                 print("wrong relay_mode in config")
+            return 300
         elif powerswitch_dict['''switch_mode'''] == 'CMD':
             poweron = "poweron_{}".format(dev_nr)
             poweroff = "poweroff_{}".format(dev_nr)
@@ -136,6 +139,7 @@ class ConfigItem(object):
                 subprocess.check_output([powerswitch_dict[poweron]], shell=True)
             except subprocess.CalledProcessError:
                 print("failed to fire command")
+            return 500
         else:
             print("no PowerSwitch configured. Do it manually!!!")
 
@@ -177,6 +181,20 @@ class ConfigItem(object):
         return config
 
 
+def create_exitcode_and_exit(exitcode):
+    # exit
+    # EXIT Code 100 = Reboot via adb
+    # EXIT Code 200 = Reboot via HTML
+    # EXIT Code 300 = Reboot via GPIO
+    # EXIT Code 400 = Reboot via i2c
+    # EXIT Code 500 = Reboot via cmd
+    # EXIT Code +50 = force Option
+    if forceOption == True:
+        exitcode += 50
+    print(exitcode)
+    sys.exit(0)
+
+
 if __name__ == '__main__':
     sysparams = main()
     conf_item = ConfigItem()
@@ -188,19 +206,20 @@ if __name__ == '__main__':
     print('Origin to reboot is', DEVICE_ORIGIN_TO_REBOOT)
     print('Force option is', forceOption)
     if forceOption == True:
-        conf_item.reboot_device_via_power(DEVICE_ORIGIN_TO_REBOOT)
-        sys.exit(0)
+        exitcode = conf_item.reboot_device_via_power(DEVICE_ORIGIN_TO_REBOOT)
+        create_exitcode_and_exit(exitcode)
     while counter < try_counter:
         if device_list[DEVICE_ORIGIN_TO_REBOOT] in conf_item.list_adb_connected_devices():
             print("Device {} already connected".format(DEVICE_ORIGIN_TO_REBOOT))
-            conf_item.reboot_device(DEVICE_ORIGIN_TO_REBOOT)
+            exitcode = conf_item.reboot_device(DEVICE_ORIGIN_TO_REBOOT)
+            create_exitcode_and_exit(exitcode)
             break;
         else:
             print("Device {} not connected".format(DEVICE_ORIGIN_TO_REBOOT))
             conf_item.connect_device(DEVICE_ORIGIN_TO_REBOOT)
             counter = counter + 1
     else:
-        conf_item.reboot_device_via_power(DEVICE_ORIGIN_TO_REBOOT)
+        exitcode = conf_item.reboot_device_via_power(DEVICE_ORIGIN_TO_REBOOT)
+        create_exitcode_and_exit(exitcode)
 
-    # exit
-    sys.exit(0)
+
