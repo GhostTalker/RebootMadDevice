@@ -206,7 +206,6 @@ class MonitoringItem(object):
         self.device_last_reboot.update(valueupdate)
 
     def initiate_led(self):
-        from neopixel import *
         global strip
         # Create NeoPixel object with appropriate configuration.
         strip = Adafruit_NeoPixel(int(self.led_count), int(self.led_pin), int(self.led_freq_hz), int(self.led_dma),
@@ -343,6 +342,7 @@ if __name__ == '__main__':
 
     # LED
     if mon_item.led_enable == "True":
+        from neopixel import *
         mon_item.initiate_led()
 
     # check and reboot device if nessessary
