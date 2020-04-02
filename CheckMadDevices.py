@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 __author__ = "GhostTalker"
-__copyright__ = "Copyright 2019, The GhostTalker project"
-__version__ = "1.1.0"
+__copyright__ = "Copyright 2020, The GhostTalker project"
+__version__ = "1.2.0"
 __status__ = "Prod"
 
 # generic/built-in and other libs
@@ -15,6 +15,7 @@ import logging
 import logging.handlers
 import datetime
 from discord_webhook import DiscordWebhook, DiscordEmbed
+from neopixel import *
 
 
 # Returns the directory the current script (or interpreter) is running in
@@ -39,6 +40,7 @@ class MonitoringItem(object):
     response = None
     auth_user = None
     auth_pass = None
+    strip = None
 
     def __init__(self):
         self._set_data()
@@ -204,6 +206,59 @@ class MonitoringItem(object):
         valueupdate = {device_origin: str(timestampStr)}
         self.device_last_reboot.update(valueupdate)
 
+    def initiate_led(self):
+        global strip
+        # Create NeoPixel object with appropriate configuration.
+        strip = Adafruit_NeoPixel(int(self.led_count), int(self.led_pin), int(self.led_freq_hz), int(self.led_dma),
+                                  eval(self.led_invert), int(self.led_brightness))
+        # Intialize the library (must be called once before other functions).
+        strip.begin()
+        for j in range(256 * 1):
+            for i in range(strip.numPixels()):
+                strip.setPixelColor(i, self.wheel_led((i + j) & 255))
+            strip.show()
+            time.sleep(20 / 1000.0)
+        """Wipe color across display a pixel at a time."""
+        for i in range(strip.numPixels()):
+            strip.setPixelColorRGB(i, 0, 0, 0)
+            strip.show()
+            time.sleep(50 / 1000.0)
+
+    def wheel_led(self, pos):
+        """Generate rainbow colors across 0-255 positions."""
+        if pos < 85:
+            return Color(pos * 3, 255 - pos * 3, 0)
+        elif pos < 170:
+            pos -= 85
+            return Color(255 - pos * 3, 0, pos * 3)
+        else:
+            pos -= 170
+            return Color(0, pos * 3, 255 - pos * 3)
+
+    def setStatusLED(self, device_origin, alertColor, mode):
+        # get device number
+        for key, value in self.devices.items():
+            dev_origin = value.split(';', 1)
+            if dev_origin[0] == device_origin:
+                dev_nr = key.replace("device_", "")
+                break
+        # define color values
+        if alertColor == "crit":
+            rLED = 255
+            gLED = 0
+            bLED = 0
+        elif alertColor == "warn":
+            rLED = 255
+            gLED = 150
+            bLED = 0
+        elif alertColor == "ok":
+            rLED = 0
+            gLED = 255
+            bLED = 0
+        # execute to led strip
+        strip.setPixelColorRGB(int(dev_nr) - 1, int(gLED), int(rLED), int(bLED))
+        strip.show()
+
 
 def create_timed_rotating_log(log_file):
     logging.basicConfig(filename=log_file, filemode='a', format='%(asctime)s %(levelname)-8s %(message)s',
@@ -286,6 +341,10 @@ if __name__ == '__main__':
     else:
         create_timed_rotating_log(mon_item.log_filename)
 
+    # LED
+    if mon_item.led_enable == "True":
+        mon_item.initiate_led()
+
     # check and reboot device if nessessary
 
     logging.info(" ")
@@ -295,72 +354,95 @@ if __name__ == '__main__':
     logging.info("===================================================================")
     logging.info(" ")
 
-    while 1:
-        device_origin_list = mon_item.create_device_origin_list()
-        for device_origin in device_origin_list:
-            # logging
-            logging.info("-------------------------------------------------------------------")
-            logging.info("Device:             {}".format(device_origin))
-            logging.info("Inject:             {}".format(mon_item.read_device_status_values(device_origin)[0]))
-            logging.info("Worker:             {} (Init={})".format(mon_item.read_mad_status_values(device_origin)[0],
-                                                                   mon_item.read_mad_status_values(device_origin)[4]))
-            logging.info("LastData:           {} ( {} minutes ago )".format(
-                mon_item.check_time_since_last_data(device_origin)[1],
-                mon_item.check_time_since_last_data(device_origin)[0]))
-            logging.info(
-                "LastProtoDate:      {} ( {} minutes ago )".format(mon_item.read_mad_status_values(device_origin)[3],
-                                                                   mon_item.calc_past_min_from_now(
-                                                                       mon_item.read_mad_status_values(device_origin)[
-                                                                           3])))
-            logging.info(
-                "LastRestartByMAD:   {} ( {} minutes ago )".format(mon_item.read_mad_status_values(device_origin)[2],
-                                                                   mon_item.calc_past_min_from_now(
-                                                                       mon_item.read_mad_status_values(device_origin)[
-                                                                           2])))
-            logging.info(
-                "LastRebootByMAD:    {} ( {} minutes ago )".format(mon_item.read_mad_status_values(device_origin)[1],
-                                                                   mon_item.calc_past_min_from_now(
-                                                                       mon_item.read_mad_status_values(device_origin)[
-                                                                           1])))
-            logging.info("LastRebootByScript: {} ( {} minutes ago )".format(mon_item.check_last_reboot(device_origin),
-                                                                            mon_item.calc_past_min_from_now(
-                                                                                mon_item.check_last_reboot(
-                                                                                    device_origin))))
+    try:
+        while 1:
+            device_origin_list = mon_item.create_device_origin_list()
+            for device_origin in device_origin_list:
+                # logging
+                logging.info("-------------------------------------------------------------------")
+                logging.info("Device:             {}".format(device_origin))
+                logging.info("Inject:             {}".format(mon_item.read_device_status_values(device_origin)[0]))
+                logging.info(
+                    "Worker:             {} (Init={})".format(mon_item.read_mad_status_values(device_origin)[0],
+                                                              mon_item.read_mad_status_values(device_origin)[4]))
+                logging.info("LastData:           {} ( {} minutes ago )".format(
+                    mon_item.check_time_since_last_data(device_origin)[1],
+                    mon_item.check_time_since_last_data(device_origin)[0]))
+                logging.info(
+                    "LastProtoDate:      {} ( {} minutes ago )".format(
+                        mon_item.read_mad_status_values(device_origin)[3],
+                        mon_item.calc_past_min_from_now(
+                            mon_item.read_mad_status_values(device_origin)[
+                                3])))
+                logging.info(
+                    "LastRestartByMAD:   {} ( {} minutes ago )".format(
+                        mon_item.read_mad_status_values(device_origin)[2],
+                        mon_item.calc_past_min_from_now(
+                            mon_item.read_mad_status_values(device_origin)[
+                                2])))
+                logging.info(
+                    "LastRebootByMAD:    {} ( {} minutes ago )".format(
+                        mon_item.read_mad_status_values(device_origin)[1],
+                        mon_item.calc_past_min_from_now(
+                            mon_item.read_mad_status_values(device_origin)[
+                                1])))
+                logging.info(
+                    "LastRebootByScript: {} ( {} minutes ago )".format(mon_item.check_last_reboot(device_origin),
+                                                                       mon_item.calc_past_min_from_now(
+                                                                           mon_item.check_last_reboot(
+                                                                               device_origin))))
 
-            # do reboot if nessessary
-            if mon_item.read_device_status_values(device_origin)[0] == False and mon_item.check_time_since_last_data(
-                    device_origin)[0] > int(mon_item.mitm_timeout) or mon_item.calc_past_min_from_now(
-                mon_item.read_mad_status_values(device_origin)[3]) > int(mon_item.proto_timeout):
-                if mon_item.calc_past_min_from_now(
-                        mon_item.check_last_reboot(device_origin)) > int(mon_item.reboot_waittime):
-                    logging.warning("Device {} will be rebooted now.".format(device_origin))
-                    mon_item.set_device_reboot_time(device_origin)
-                    if mon_item.calc_past_min_from_now(mon_item.read_mad_status_values(device_origin)[3]) > int(
-                            mon_item.force_reboot_timeout):
-                        cmd = "{}/RebootMadDevice.py --force --origin {}".format(get_script_directory(), device_origin)
-                        logging.critical("Force option will be used.")
-                        try:
-                            script_output = subprocess.check_output([cmd], shell=True, timeout=120)
-                            if mon_item.webhook_enable == "True":
-                                create_webhook(mon_item.webhookurl, device_origin, script_output)
-                        except subprocess.CalledProcessError:
-                            logging.error("Failed to call reboot script with force option")
-                        except subprocess.TimeoutExpired:
-                            logging.error("Reboot-script runs in timeout.")
+                # do reboot if nessessary
+                if mon_item.read_device_status_values(device_origin)[0] == False and \
+                        mon_item.check_time_since_last_data(
+                                device_origin)[0] > int(mon_item.mitm_timeout) or mon_item.calc_past_min_from_now(
+                    mon_item.read_mad_status_values(device_origin)[3]) > int(mon_item.proto_timeout):
+                    if mon_item.calc_past_min_from_now(
+                            mon_item.check_last_reboot(device_origin)) > int(mon_item.reboot_waittime):
+                        logging.warning("Device {} will be rebooted now.".format(device_origin))
+                        mon_item.set_device_reboot_time(device_origin)
+                        alertColor = "crit"
+                        if mon_item.calc_past_min_from_now(mon_item.read_mad_status_values(device_origin)[3]) > int(
+                                mon_item.force_reboot_timeout):
+                            cmd = "{}/RebootMadDevice.py --force --origin {}".format(get_script_directory(),
+                                                                                     device_origin)
+                            logging.critical("Force option will be used.")
+                            try:
+                                script_output = subprocess.check_output([cmd], shell=True, timeout=120)
+                                if mon_item.webhook_enable == "True":
+                                    create_webhook(mon_item.webhookurl, device_origin, script_output)
+                            except subprocess.CalledProcessError:
+                                logging.error("Failed to call reboot script with force option")
+                            except subprocess.TimeoutExpired:
+                                logging.error("Reboot-script runs in timeout.")
+                        else:
+                            cmd = "{}/RebootMadDevice.py --origin {}".format(get_script_directory(), device_origin)
+                            try:
+                                script_output = subprocess.check_output([cmd], shell=True, timeout=120)
+                                if mon_item.webhook_enable == "True":
+                                    create_webhook(mon_item.webhookurl, device_origin, script_output)
+                            except subprocess.CalledProcessError:
+                                logging.error("Failed to call reboot script")
+                            except subprocess.TimeoutExpired:
+                                logging.error("Reboot-script runs in timeout.")
                     else:
-                        cmd = "{}/RebootMadDevice.py --origin {}".format(get_script_directory(), device_origin)
-                        try:
-                            script_output = subprocess.check_output([cmd], shell=True, timeout=120)
-                            if mon_item.webhook_enable == "True":
-                                create_webhook(mon_item.webhookurl, device_origin, script_output)
-                        except subprocess.CalledProcessError:
-                            logging.error("Failed to call reboot script")
-                        except subprocess.TimeoutExpired:
-                            logging.error("Reboot-script runs in timeout.")
+                        logging.warning(
+                            "Device {} was rebooted {} minutes ago. Let it time to initalize completely.".format(
+                                device_origin, mon_item.calc_past_min_from_now(
+                                    mon_item.check_last_reboot(device_origin))))
+                        alertColor = "warn"
                 else:
-                    logging.warning(
-                        "Device {} was rebooted {} minutes ago. Let it time to initalize completely.".format(
-                            device_origin, mon_item.calc_past_min_from_now(
-                                mon_item.check_last_reboot(device_origin))))
-            print("")
-        time.sleep(int(mon_item.sleeptime_between_check))
+                    alertColor = "ok"
+
+                if mon_item.led_enable == "True":
+                    mode = 1
+                    mon_item.setStatusLED(device_origin, alertColor, mode)
+
+                print("")
+            time.sleep(int(mon_item.sleeptime_between_check))
+
+    except KeyboardInterrupt:
+        print("Script will be stopped")
+        if mon_item.led_enable == "True":
+            mon_item.initiate_led()
+        exit(0)

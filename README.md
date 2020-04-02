@@ -9,6 +9,7 @@ Install:
 - adjust CheckMadDevicesDaemon.sh with install path
 
 Whats new:
+- add status LED support for WS2812 led stripe
 - added Discord Webhook support
 - timeout can now be configured in config.ini
 - path for reboot script automaticly set

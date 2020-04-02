@@ -2,3 +2,4 @@ configparser==3.7.4
 requests==2.21.0
 RPi.GPIO==0.7.0
 discord-webhook==0.7.1
+rpi-ws281x==1.0.0
