@@ -15,7 +15,6 @@ import logging
 import logging.handlers
 import datetime
 from discord_webhook import DiscordWebhook, DiscordEmbed
-from neopixel import *
 
 
 # Returns the directory the current script (or interpreter) is running in
@@ -207,6 +206,7 @@ class MonitoringItem(object):
         self.device_last_reboot.update(valueupdate)
 
     def initiate_led(self):
+        from neopixel import *
         global strip
         # Create NeoPixel object with appropriate configuration.
         strip = Adafruit_NeoPixel(int(self.led_count), int(self.led_pin), int(self.led_freq_hz), int(self.led_dma),
