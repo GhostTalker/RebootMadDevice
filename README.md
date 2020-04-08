@@ -5,10 +5,12 @@ only works with Python 3.6 and above
 
 Install:
 - pip3 install -r requirements.txt
+- pip3 install -r requirements_rpi.txt (only for raspberry - add support for GPIO and LED)
 - copy config.ini.example to config.ini and adjust the values
 - adjust CheckMadDevicesDaemon.sh with install path
 
 Whats new:
+- devided requirements in two parts (general and raspi)
 - add status LED support for WS2812 led stripe
 - added Discord Webhook support
 - timeout can now be configured in config.ini

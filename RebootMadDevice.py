@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 __author__ = "GhostTalker"
 __copyright__ = "Copyright 2019, The GhostTalker project"
-__version__ = "0.11.0"
+__version__ = "0.11.1"
 __status__ = "Dev"
 
 # generic/built-in and other libs
@@ -12,7 +12,6 @@ import sys
 import getopt
 import time
 import requests
-import RPi.GPIO as GPIO
 
 # check syntax and arguments
 if (len(sys.argv) < 2 or len(sys.argv) > 4):
@@ -198,6 +197,8 @@ def create_exitcode_and_exit(exitcode):
 if __name__ == '__main__':
     sysparams = main()
     conf_item = ConfigItem()
+    if conf_item.powerswitchcommands['switch_mode'] == 'GPIO':
+        import RPi.GPIO as GPIO
     device_list = conf_item.create_device_list()
     try_counter = 2
     counter = 0
@@ -221,5 +222,3 @@ if __name__ == '__main__':
     else:
         exitcode = conf_item.reboot_device_via_power(DEVICE_ORIGIN_TO_REBOOT)
         create_exitcode_and_exit(exitcode)
-
-
