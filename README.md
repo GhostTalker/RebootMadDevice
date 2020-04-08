@@ -21,4 +21,3 @@ Whats new:
 - usable with gpio
 - it is configurable if you use the relay in NC or NO mode
 - fixed null values
-
