@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 __author__ = "GhostTalker"
 __copyright__ = "Copyright 2019, The GhostTalker project"
-__version__ = "0.11.2"
+__version__ = "0.12.1"
 __status__ = "Dev"
 
 # generic/built-in and other libs
@@ -139,6 +139,22 @@ class ConfigItem(object):
             except subprocess.CalledProcessError:
                 print("failed to fire command")
             return 500
+        elif powerswitch_dict['''switch_mode'''] == 'PB':
+            pbport = "pb_{}".format(dev_nr)
+            pbporton = '/bin/echo -e "on {}" > {}'.format(powerswitch_dict[pbport],powerswitch_dict['pb_interface'])
+            pbportoff = '/bin/echo -e "off {}" > {}'.format(powerswitch_dict[pbport],powerswitch_dict['pb_interface'])
+            print("send command to PowerBoard for PowerSwitch off")
+            try:
+                subprocess.check_output(pbportoff, shell=True)
+            except subprocess.CalledProcessError:
+                print("failed send command to PowerBoard")
+            time.sleep(5)
+            print("send command to Powerboard for PowerSwitch on")
+            try:
+                subprocess.check_output(pbporton, shell=True)
+            except subprocess.CalledProcessError:
+                print("failed send command to PowerBoard")
+            return 600
         else:
             print("no PowerSwitch configured. Do it manually!!!")
 
@@ -187,6 +203,7 @@ def create_exitcode_and_exit(exitcode):
     # EXIT Code 300 = Reboot via GPIO
     # EXIT Code 400 = Reboot via i2c
     # EXIT Code 500 = Reboot via cmd
+    # EXIT Code 600 = Reboot via PB
     # EXIT Code +50 = force Option
     if forceOption == True:
         exitcode += 50
@@ -222,3 +239,5 @@ if __name__ == '__main__':
     else:
         exitcode = conf_item.reboot_device_via_power(DEVICE_ORIGIN_TO_REBOOT)
         create_exitcode_and_exit(exitcode)
+
+

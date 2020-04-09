@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 __author__ = "GhostTalker"
 __copyright__ = "Copyright 2020, The GhostTalker project"
-__version__ = "1.2.0"
+__version__ = "1.2.1"
 __status__ = "Prod"
 
 # generic/built-in and other libs
@@ -15,6 +15,7 @@ import logging
 import logging.handlers
 import datetime
 from discord_webhook import DiscordWebhook, DiscordEmbed
+from neopixel import *
 
 
 # Returns the directory the current script (or interpreter) is running in
@@ -315,6 +316,12 @@ def create_webhook(web_hook_url, device_origin, script_output):
     elif returncode == '550':
         reboot_type = 'CMD'
         force_option = 'yes'
+    elif returncode == '600':
+        reboot_type = 'PB'
+        force_option = 'no'
+    elif returncode == '650':
+        reboot_type = 'PB'
+        force_option = 'yes'
 
     # create embed object for webhook
     webhook = DiscordWebhook(url=web_hook_url)
@@ -342,7 +349,6 @@ if __name__ == '__main__':
 
     # LED
     if mon_item.led_enable == "True":
-        from neopixel import *
         mon_item.initiate_led()
 
     # check and reboot device if nessessary
