@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 __author__ = "GhostTalker"
 __copyright__ = "Copyright 2020, The GhostTalker project"
-__version__ = "1.2.1"
+__version__ = "1.2.5"
 __status__ = "Prod"
 
 # generic/built-in and other libs
@@ -15,7 +15,7 @@ import logging
 import logging.handlers
 import datetime
 from discord_webhook import DiscordWebhook, DiscordEmbed
-from neopixel import *
+
 
 
 # Returns the directory the current script (or interpreter) is running in
@@ -349,6 +349,7 @@ if __name__ == '__main__':
 
     # LED
     if mon_item.led_enable == "True":
+        from rpi_ws281x import *
         mon_item.initiate_led()
 
     # check and reboot device if nessessary
