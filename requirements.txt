@@ -1,3 +1,5 @@
 configparser==3.7.4
 requests==2.21.0
 discord-webhook==0.7.1
+webcolors==1.11.1
+websocket-client==0.57.0

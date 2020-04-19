@@ -10,6 +10,7 @@ Install:
 - adjust CheckMadDevicesDaemon.sh with install path
 
 Whats new:
+- add support for external status LED via websocket (https://github.com/FabLab-Luenen/McLighting)
 - add support for PowerBoard (Link will follow)
 - devided requirements in two parts (general and raspi)
 - add status LED support for WS2812 led stripe

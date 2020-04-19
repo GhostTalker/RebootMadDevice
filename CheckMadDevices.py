@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 __author__ = "GhostTalker"
 __copyright__ = "Copyright 2020, The GhostTalker project"
-__version__ = "1.2.5"
+__version__ = "1.2.9"
 __status__ = "Prod"
 
 # generic/built-in and other libs
@@ -15,7 +15,6 @@ import logging
 import logging.handlers
 import datetime
 from discord_webhook import DiscordWebhook, DiscordEmbed
-
 
 
 # Returns the directory the current script (or interpreter) is running in
@@ -235,7 +234,7 @@ class MonitoringItem(object):
             pos -= 170
             return Color(0, pos * 3, 255 - pos * 3)
 
-    def setStatusLED(self, device_origin, alertColor, mode):
+    def setStatusLED(self, device_origin, alertColor):
         # get device number
         for key, value in self.devices.items():
             dev_origin = value.split(';', 1)
@@ -249,15 +248,27 @@ class MonitoringItem(object):
             bLED = 0
         elif alertColor == "warn":
             rLED = 255
-            gLED = 150
+            gLED = 255
             bLED = 0
         elif alertColor == "ok":
             rLED = 0
             gLED = 255
             bLED = 0
-        # execute to led strip
-        strip.setPixelColorRGB(int(dev_nr) - 1, int(gLED), int(rLED), int(bLED))
-        strip.show()
+
+        if mon_item.led_type == "internal":
+            # execute to led strip
+            logging.debug("LED alertlvl: " + str(alertColor))
+            logging.debug("LED Colors: " + str(rLED) + ", " + str(gLED) + ", " + str(bLED))
+            strip.setPixelColorRGB(int(dev_nr) - 1, int(rLED), int(gLED), int(bLED))
+            strip.show()
+        elif mon_item.led_type == "external":
+            websocket.enableTrace(False)
+            ws = create_connection('ws://192.168.5.212:81')  # open socket
+            hexcolor = webcolors.rgb_to_hex((rLED, gLED, bLED)).replace("#", "")
+            led_number = '%0.4d' % (int(dev_nr))
+            payload = "!{} {}".format(led_number, hexcolor)
+            ws.send(payload)  # send to websocket
+            ws.close()  # close websocket
 
 
 def create_timed_rotating_log(log_file):
@@ -347,10 +358,16 @@ if __name__ == '__main__':
     else:
         create_timed_rotating_log(mon_item.log_filename)
 
-    # LED
+    # LED initalize / import libs
     if mon_item.led_enable == "True":
-        from rpi_ws281x import *
-        mon_item.initiate_led()
+        if mon_item.led_type == "internal":
+            from rpi_ws281x import *
+
+            mon_item.initiate_led()
+        elif mon_item.led_type == "external":
+            import webcolors
+            import websocket
+            from websocket import create_connection
 
     # check and reboot device if nessessary
 
@@ -402,7 +419,7 @@ if __name__ == '__main__':
                 # do reboot if nessessary
                 if mon_item.read_device_status_values(device_origin)[0] == False and \
                         mon_item.check_time_since_last_data(
-                                device_origin)[0] > int(mon_item.mitm_timeout) or mon_item.calc_past_min_from_now(
+                            device_origin)[0] > int(mon_item.mitm_timeout) or mon_item.calc_past_min_from_now(
                     mon_item.read_mad_status_values(device_origin)[3]) > int(mon_item.proto_timeout):
                     if mon_item.calc_past_min_from_now(
                             mon_item.check_last_reboot(device_origin)) > int(mon_item.reboot_waittime):
@@ -442,14 +459,13 @@ if __name__ == '__main__':
                     alertColor = "ok"
 
                 if mon_item.led_enable == "True":
-                    mode = 1
-                    mon_item.setStatusLED(device_origin, alertColor, mode)
+                    mon_item.setStatusLED(device_origin, alertColor)
 
                 print("")
             time.sleep(int(mon_item.sleeptime_between_check))
 
     except KeyboardInterrupt:
         print("Script will be stopped")
-        if mon_item.led_enable == "True":
+        if mon_item.led_enable == "True" and mon_item.led_type == "internal":
             mon_item.initiate_led()
         exit(0)
