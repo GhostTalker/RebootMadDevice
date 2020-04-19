@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 __author__ = "GhostTalker"
 __copyright__ = "Copyright 2020, The GhostTalker project"
-__version__ = "1.2.9"
+__version__ = "1.2.10"
 __status__ = "Prod"
 
 # generic/built-in and other libs
@@ -265,7 +265,7 @@ class MonitoringItem(object):
             websocket.enableTrace(False)
             ws = create_connection('ws://192.168.5.212:81')  # open socket
             hexcolor = webcolors.rgb_to_hex((rLED, gLED, bLED)).replace("#", "")
-            led_number = '%0.4d' % (int(dev_nr))
+            led_number = '%0.4d' % (int(dev_nr) - 1)
             payload = "!{} {}".format(led_number, hexcolor)
             ws.send(payload)  # send to websocket
             ws.close()  # close websocket
