@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 __author__ = "GhostTalker"
 __copyright__ = "Copyright 2020, The GhostTalker project"
-__version__ = "1.2.10"
+__version__ = "1.2.11"
 __status__ = "Prod"
 
 # generic/built-in and other libs
@@ -336,7 +336,8 @@ def create_webhook(web_hook_url, device_origin, script_output):
 
     # create embed object for webhook
     webhook = DiscordWebhook(url=web_hook_url)
-    embed = DiscordEmbed(description='Device Reboot executed', color=242424)
+    wh_dec = "Reboot for Device {} executed".format(device_origin)
+    embed = DiscordEmbed(description=wh_dec, color=242424)
     embed.set_author(name='RebootMadDevice', url='https://github.com/GhostTalker',
                      icon_url='https://avatars2.githubusercontent.com/u/49254289')
     embed.set_footer(text='')
