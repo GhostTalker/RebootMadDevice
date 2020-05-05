@@ -2,6 +2,7 @@
 Reboot MAD devices via ADB or PowerSwitch when device is not responding
 
 only works with Python 3.6 and above
+Run the installation and this scripts not with sudo. Use root user!
 
 Install:
 - pip3 install -r requirements.txt
@@ -23,3 +24,4 @@ Whats new:
 - usable with gpio
 - it is configurable if you use the relay in NC or NO mode
 - fixed null values
+- fixed MITM auth
