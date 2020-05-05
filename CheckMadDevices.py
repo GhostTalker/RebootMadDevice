@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 __author__ = "GhostTalker"
 __copyright__ = "Copyright 2020, The GhostTalker project"
-__version__ = "1.2.11"
+__version__ = "1.2.20"
 __status__ = "Prod"
 
 # generic/built-in and other libs
@@ -116,16 +116,57 @@ class MonitoringItem(object):
             time.sleep(10)
             self.check_status_page(check_url, auth_user, auth_pass)
 
+    def check_status_page_headerauth(self, check_url, auth_token):
+        """  Check Response Code and Output from status page """
+        response = ""
+
+        try:
+            session = requests.Session()
+            session.headers = {'Content-Type': 'application/json', 'Authorization': auth_token}
+            response = session.get(check_url)
+            response.raise_for_status()
+            if response.status_code != 200:
+                logging.warning(
+                    "Statuscode is {}, not 200. Retry connect to statuspage...".format(response.status_code))
+                time.sleep(30)
+                self.check_status_page_headerauth(check_url, auth_token)
+        except requests.exceptions.HTTPError as errh:
+            logging.error("Http Error:", errh)
+            logging.error("Retry connect to statuspage in 10s...")
+            time.sleep(10)
+            self.check_status_page_headerauth(check_url, auth_token)
+        except requests.exceptions.ConnectionError as errc:
+            logging.error("Error Connecting:", errc)
+            logging.error("Retry connect to statuspage in 30s...")
+            time.sleep(30)
+            self.check_status_page_headerauth(check_url, auth_token)
+        except requests.exceptions.Timeout as errt:
+            logging.error("Timeout Error:", errt)
+            logging.error("Retry connect to statuspage in 10s...")
+            time.sleep(10)
+            self.check_status_page_headerauth(check_url, auth_token)
+        except requests.exceptions.RequestException as err:
+            logging.error("OOps: Something Else", err)
+            logging.error("Retry connect to statuspage in 30s...")
+            time.sleep(30)
+            self.check_status_page_headerauth(check_url, auth_token)
+
+        try:
+            return response.json()
+        except:
+            time.sleep(10)
+            self.check_status_page_headerauth(check_url, auth_token)
+
     def read_device_status_values(self, device_origin):
         """ Read Values for a device from MITM status page """
         check_url = "{}://{}:{}/{}/".format(self.mitm_proto, self.mitm_receiver_ip, self.mitm_receiver_port,
                                             self.mitm_receiver_status_endpoint)
         # Read Values
-        json_respond = self.check_status_page(check_url, self.mitm_user, self.mitm_pass)
+        json_respond = self.check_status_page_headerauth(check_url, self.mitm_pass)
         while json_respond is None:
             logging.warning("Response of status page is null. Retry in 5s...")
             time.sleep(5)
-            json_respond = self.check_status_page(check_url, self.mitm_user, self.mitm_pass)
+            json_respond = self.check_status_page_headerauth(check_url, self.mitm_pass)
 
         devices = (json_respond["origin_status"])
         device_values = (devices[device_origin])
