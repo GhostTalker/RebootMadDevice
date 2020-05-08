@@ -25,3 +25,6 @@ Whats new:
 - it is configurable if you use the relay in NC or NO mode
 - fixed null values
 - fixed MITM auth
+
+##License
+See the [LICENSE](https://github.com/GhostTalker/RebootMadDevice/blob/master/LICENSE.md) file for license rights and limitations (MIT).
