@@ -26,5 +26,5 @@ Whats new:
 - fixed null values
 - fixed MITM auth
 
-##License
+## License
 See the [LICENSE](https://github.com/GhostTalker/RebootMadDevice/blob/master/LICENSE.md) file for license rights and limitations (MIT).
