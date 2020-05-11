@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 __author__ = "GhostTalker"
 __copyright__ = "Copyright 2020, The GhostTalker project"
-__version__ = "1.2.20"
+__version__ = "1.2.21"
 __status__ = "Prod"
 
 # generic/built-in and other libs
@@ -122,7 +122,8 @@ class MonitoringItem(object):
 
         try:
             session = requests.Session()
-            session.headers = {'Content-Type': 'application/json', 'Authorization': auth_token}
+            if self.mitm_pass:
+                session.headers = {'Content-Type': 'application/json', 'Authorization': auth_token}
             response = session.get(check_url)
             response.raise_for_status()
             if response.status_code != 200:
