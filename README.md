@@ -5,7 +5,7 @@ only works with Python 3.6 and above
 Run the installation and this scripts not with sudo. Use root user!
 Running the daemon is only possible with root user!
 
-####Install:
+#### Install:
 ```
 - pip3 install -r requirements.txt
 - pip3 install -r requirements_rpi.txt (only for raspberry - add support for GPIO and LED)
@@ -15,7 +15,7 @@ Running the daemon is only possible with root user!
 - run chmod +x *.sh
 ```
 
-####Using the daemon:
+#### Using the daemon:
  
 
 The deamon has to be started with:
@@ -34,7 +34,7 @@ CheckMadDeviceDaemon.sh stop
 
 
 
-####Whats new:
+#### Whats new:
 ```
 - add support for external status LED via websocket (https://github.com/FabLab-Luenen/McLighting)
 - add support for PowerBoard (Link will follow)
