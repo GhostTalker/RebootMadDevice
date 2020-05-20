@@ -302,7 +302,7 @@ class MonitoringItem(object):
             strip.show()
         elif mon_item.led_type == "external":
             websocket.enableTrace(False)
-            ws = create_connection('ws://192.168.5.212:81')  # open socket
+            ws = create_connection(mon_item.led_ws_external)  # open socket
             hexcolor = webcolors.rgb_to_hex((rLED, gLED, bLED)).replace("#", "")
             led_number = '%0.4d' % (int(dev_nr) - 1)
             payload = "!{} {}".format(led_number, hexcolor)
