@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 __author__ = "GhostTalker"
 __copyright__ = "Copyright 2020, The GhostTalker project"
-__version__ = "1.2.22"
+__version__ = "1.2.25"
 __status__ = "Prod"
 
 # generic/built-in and other libs

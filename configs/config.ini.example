@@ -13,7 +13,7 @@ LOG_LEVEL: INFO
 
 [Discord]
 WEBHOOK_ENABLE: <True/False>
-WEBHOOKURL: 'https://discordapp.com/api/webhooks/xxxxxxxxxxx'
+WEBHOOKURL: https://discordapp.com/api/webhooks/xxxxxxxxxxx
 
 [Status LED]
 LED_ENABLE: True

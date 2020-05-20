@@ -3,14 +3,39 @@ Reboot MAD devices via ADB or PowerSwitch when device is not responding
 
 only works with Python 3.6 and above
 Run the installation and this scripts not with sudo. Use root user!
+Running the daemon is only possible with root user!
 
-Install:
+####Install:
+```
 - pip3 install -r requirements.txt
 - pip3 install -r requirements_rpi.txt (only for raspberry - add support for GPIO and LED)
 - copy config.ini.example to config.ini and adjust the values
 - adjust CheckMadDevicesDaemon.sh with install path
+- run chmod +x *.py
+- run chmod +x *.sh
+```
 
-Whats new:
+####Using the daemon:
+ 
+
+The deamon has to be started with:
+```
+CheckMadDeviceDaemon.sh start
+```
+if you want to check that is running:
+```
+CheckMadDeviceDaemon.sh status
+```
+
+and if you want to stop
+```
+CheckMadDeviceDaemon.sh stop
+```
+
+
+
+####Whats new:
+```
 - add support for external status LED via websocket (https://github.com/FabLab-Luenen/McLighting)
 - add support for PowerBoard (Link will follow)
 - devided requirements in two parts (general and raspi)
@@ -25,6 +50,6 @@ Whats new:
 - it is configurable if you use the relay in NC or NO mode
 - fixed null values
 - fixed MITM auth
-
+```
 ## License
 See the [LICENSE](https://github.com/GhostTalker/RebootMadDevice/blob/master/LICENSE.md) file for license rights and limitations (MIT).
