@@ -11,7 +11,7 @@
 ### END INIT INFO
 
 # Change the next 3 lines to suit where you install your script and what you want to call it
-DIR=<yourpath>/adb_scripts
+DIR=<yourpath>
 DAEMON=$DIR/CheckMadDevices.py
 DAEMON_NAME=CheckDaemon
 

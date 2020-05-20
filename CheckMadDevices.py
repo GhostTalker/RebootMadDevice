@@ -352,7 +352,7 @@ def create_webhook(web_hook_url, device_origin, script_output):
         reboot_type = 'GPIO'
         force_option = 'no'
     elif returncode == '350':
-        reboot_type = 'HTML'
+        reboot_type = 'GPIO'
         force_option = 'yes'
     elif returncode == '400':
         reboot_type = 'I2C'
