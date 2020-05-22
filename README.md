@@ -20,16 +20,16 @@ Running the daemon is only possible with root user!
 
 The deamon has to be started with:
 ```
-CheckMadDeviceDaemon.sh start
+CheckMadDevicesDaemon.sh start
 ```
 if you want to check that is running:
 ```
-CheckMadDeviceDaemon.sh status
+CheckMadDevicesDaemon.sh status
 ```
 
 and if you want to stop
 ```
-CheckMadDeviceDaemon.sh stop
+CheckMadDevicesDaemon.sh stop
 ```
 
 
