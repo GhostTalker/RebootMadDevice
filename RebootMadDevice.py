@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 __author__ = "GhostTalker"
 __copyright__ = "Copyright 2019, The GhostTalker project"
-__version__ = "0.12.2"
+__version__ = "0.12.3"
 __status__ = "Dev"
 
 # generic/built-in and other libs
@@ -110,9 +110,13 @@ class ConfigItem(object):
             GPIO.setwarnings(False)
             GPIO.setmode(GPIO.BCM)
             if powerswitch_dict['''relay_mode'''] == 'NO':
-                GPIO.setup(gpionr, GPIO.OUT, initial=GPIO.HIGH)
+                #GPIO.setup(gpionr, GPIO.OUT, initial=GPIO.HIGH)
+                GPIO.setup(gpionr, GPIO.OUT)
+                GPIO.output(gpionr, GPIO.HIGH)
             elif powerswitch_dict['''relay_mode'''] == 'NC':
-                GPIO.setup(gpionr, GPIO.OUT, initial=GPIO.LOW)
+                #GPIO.setup(gpionr, GPIO.OUT, initial=GPIO.LOW)
+                GPIO.setup(gpionr, GPIO.OUT)
+                GPIO.output(gpionr, GPIO.LOW)
             else:
                 print("wrong relay_mode in config")
             time.sleep(10)
@@ -239,5 +243,3 @@ if __name__ == '__main__':
     else:
         exitcode = conf_item.reboot_device_via_power(DEVICE_ORIGIN_TO_REBOOT)
         create_exitcode_and_exit(exitcode)
-
-
