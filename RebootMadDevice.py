@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 __author__ = "GhostTalker"
 __copyright__ = "Copyright 2019, The GhostTalker project"
-__version__ = "0.12.3"
-__status__ = "Dev"
+__version__ = "0.12.5"
+__status__ = "Prod"
 
 # generic/built-in and other libs
 import configparser
@@ -109,6 +109,7 @@ class ConfigItem(object):
             print("turn GPIO PowerSwitch off")
             GPIO.setwarnings(False)
             GPIO.setmode(GPIO.BCM)
+            GPIO.cleanup()
             if powerswitch_dict['''relay_mode'''] == 'NO':
                 #GPIO.setup(gpionr, GPIO.OUT, initial=GPIO.HIGH)
                 GPIO.setup(gpionr, GPIO.OUT)
@@ -127,6 +128,7 @@ class ConfigItem(object):
                 GPIO.output(gpionr, GPIO.HIGH)
             else:
                 print("wrong relay_mode in config")
+            GPIO.cleanup()
             return 300
         elif powerswitch_dict['''switch_mode'''] == 'CMD':
             poweron = "poweron_{}".format(dev_nr)
