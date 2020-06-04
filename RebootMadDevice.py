@@ -118,20 +118,24 @@ class ConfigItem(object):
                 GPIO.cleanup()
 
             if powerswitch_dict['''relay_mode'''] == 'NO':
-                GPIO.setup(gpionr, GPIO.OUT, initial=GPIO.HIGH)
-                #GPIO.setup(gpionr, GPIO.OUT)
-                #GPIO.output(gpionr, GPIO.HIGH)
+                #GPIO.setup(gpionr, GPIO.OUT, initial=GPIO.HIGH)
+                GPIO.setup(gpionr, GPIO.OUT)
+                GPIO.output(gpionr, GPIO.HIGH)
             elif powerswitch_dict['''relay_mode'''] == 'NC':
-                GPIO.setup(gpionr, GPIO.OUT, initial=GPIO.LOW)
-                #GPIO.setup(gpionr, GPIO.OUT)
-                #GPIO.output(gpionr, GPIO.LOW)
+                #GPIO.setup(gpionr, GPIO.OUT, initial=GPIO.LOW)
+                GPIO.setup(gpionr, GPIO.OUT)
+                GPIO.output(gpionr, GPIO.LOW)
             else:
                 print("wrong relay_mode in config")
             time.sleep(10)
             print("turn GPIO PowerSwitch on")
             if powerswitch_dict['''relay_mode'''] == 'NO':
+                #GPIO.output(gpionr, GPIO.LOW)
+                GPIO.setup(gpionr, GPIO.OUT)
                 GPIO.output(gpionr, GPIO.LOW)
             elif powerswitch_dict['''relay_mode'''] == 'NC':
+                #GPIO.output(gpionr, GPIO.HIGH)
+                GPIO.setup(gpionr, GPIO.OUT)
                 GPIO.output(gpionr, GPIO.HIGH)
             else:
                 print("wrong relay_mode in config")
