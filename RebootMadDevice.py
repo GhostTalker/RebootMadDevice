@@ -112,7 +112,7 @@ class ConfigItem(object):
             try:
                 powerswitch_dict['''CLEANUP_MODE''']
             except KeyError:
-                powerswitch_dict = powerswitch_dict + {'''CLEANUP_MODE''' : 'no'}
+                powerswitch_dict.update({'''CLEANUP_MODE''' : 'no'})
 
             if powerswitch_dict['''CLEANUP_MODE'''] == 'yes':
                 GPIO.cleanup()
