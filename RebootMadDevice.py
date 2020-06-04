@@ -116,6 +116,8 @@ class ConfigItem(object):
 
             if powerswitch_dict['''CLEANUP_MODE'''] == 'yes':
                 GPIO.cleanup()
+                print("CleanupParameter: " + powerswitch_dict['''CLEANUP_MODE'''])
+                print("Cleanup done!")
 
             if powerswitch_dict['''relay_mode'''] == 'NO':
                 #GPIO.setup(gpionr, GPIO.OUT, initial=GPIO.HIGH)
@@ -142,6 +144,8 @@ class ConfigItem(object):
 
             if powerswitch_dict['''CLEANUP_MODE'''] == 'yes':
                 GPIO.cleanup()
+                print("CleanupParameter: " + powerswitch_dict['''CLEANUP_MODE'''])
+                print("Cleanup done!")
             return 300
         elif powerswitch_dict['''switch_mode'''] == 'CMD':
             poweron = "poweron_{}".format(dev_nr)
