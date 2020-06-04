@@ -115,7 +115,7 @@ class ConfigItem(object):
                 powerswitch_dict = powerswitch_dict + {'''CLEANUP_MODE''' : 'no'}
 
             if powerswitch_dict['''CLEANUP_MODE'''] == 'yes':
-            GPIO.cleanup()
+                GPIO.cleanup()
 
             if powerswitch_dict['''relay_mode'''] == 'NO':
                 GPIO.setup(gpionr, GPIO.OUT, initial=GPIO.HIGH)
