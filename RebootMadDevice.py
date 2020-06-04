@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 __author__ = "GhostTalker"
 __copyright__ = "Copyright 2019, The GhostTalker project"
-__version__ = "0.12.5"
+__version__ = "0.12.6"
 __status__ = "Prod"
 
 # generic/built-in and other libs
@@ -109,15 +109,22 @@ class ConfigItem(object):
             print("turn GPIO PowerSwitch off")
             GPIO.setwarnings(False)
             GPIO.setmode(GPIO.BCM)
+            try:
+                powerswitch_dict['''CLEANUP_MODE''']
+            except KeyError:
+                powerswitch_dict = powerswitch_dict + {'''CLEANUP_MODE''' : 'no'}
+
+            if powerswitch_dict['''CLEANUP_MODE'''] == 'yes':
             GPIO.cleanup()
+
             if powerswitch_dict['''relay_mode'''] == 'NO':
-                #GPIO.setup(gpionr, GPIO.OUT, initial=GPIO.HIGH)
-                GPIO.setup(gpionr, GPIO.OUT)
-                GPIO.output(gpionr, GPIO.HIGH)
+                GPIO.setup(gpionr, GPIO.OUT, initial=GPIO.HIGH)
+                #GPIO.setup(gpionr, GPIO.OUT)
+                #GPIO.output(gpionr, GPIO.HIGH)
             elif powerswitch_dict['''relay_mode'''] == 'NC':
-                #GPIO.setup(gpionr, GPIO.OUT, initial=GPIO.LOW)
-                GPIO.setup(gpionr, GPIO.OUT)
-                GPIO.output(gpionr, GPIO.LOW)
+                GPIO.setup(gpionr, GPIO.OUT, initial=GPIO.LOW)
+                #GPIO.setup(gpionr, GPIO.OUT)
+                #GPIO.output(gpionr, GPIO.LOW)
             else:
                 print("wrong relay_mode in config")
             time.sleep(10)
@@ -128,7 +135,9 @@ class ConfigItem(object):
                 GPIO.output(gpionr, GPIO.HIGH)
             else:
                 print("wrong relay_mode in config")
-            GPIO.cleanup()
+
+            if powerswitch_dict['''CLEANUP_MODE'''] == 'yes':
+                GPIO.cleanup()
             return 300
         elif powerswitch_dict['''switch_mode'''] == 'CMD':
             poweron = "poweron_{}".format(dev_nr)
