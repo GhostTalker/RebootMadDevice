@@ -73,7 +73,8 @@ PowerON_Device_2: http://<IPADRESS_POWER_SWITCH>/<PowerONcommand>
 PowerOFF_Device_2: http://<IPADRESS_POWER_SWITCH>/<PowerOFFcommand>
 #### for GPIO mode ####
 RELAY_MODE: <NO or NC>
-CLEANUP_MODE: <yes or no> #this is optional. only use if you have problems with the relayswitch
+#the cleanup_mode is optional. only use if you have problems with the relayswitch
+CLEANUP_MODE: <yes or no>
 GPIO_Device_1: 17
 GPIO_Device_2: 27
 #### for CMD mode ####

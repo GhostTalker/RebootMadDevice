@@ -110,13 +110,13 @@ class ConfigItem(object):
             GPIO.setwarnings(False)
             GPIO.setmode(GPIO.BCM)
             try:
-                powerswitch_dict['''CLEANUP_MODE''']
+                powerswitch_dict['''cleanup_mode''']
             except KeyError:
-                powerswitch_dict.update({'''CLEANUP_MODE''' : 'no'})
+                powerswitch_dict.update({'''cleanup_mode''' : 'no'})
 
-            if powerswitch_dict['''CLEANUP_MODE'''] == 'yes':
+            if powerswitch_dict['''cleanup_mode'''] == 'yes':
                 GPIO.cleanup()
-                print("CleanupParameter: " + powerswitch_dict['''CLEANUP_MODE'''])
+                print("CleanupParameter: " + powerswitch_dict['''cleanup_mode'''])
                 print("Cleanup done!")
 
             if powerswitch_dict['''relay_mode'''] == 'NO':
@@ -142,9 +142,9 @@ class ConfigItem(object):
             else:
                 print("wrong relay_mode in config")
 
-            if powerswitch_dict['''CLEANUP_MODE'''] == 'yes':
+            if powerswitch_dict['''cleanup_mode'''] == 'yes':
                 GPIO.cleanup()
-                print("CleanupParameter: " + powerswitch_dict['''CLEANUP_MODE'''])
+                print("CleanupParameter: " + powerswitch_dict['''cleanup_mode'''])
                 print("Cleanup done!")
             return 300
         elif powerswitch_dict['''switch_mode'''] == 'CMD':
