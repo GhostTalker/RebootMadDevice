@@ -176,7 +176,7 @@ class rmdItem(object):
         return device_list
 
     def _check_config(self):
-        conf_file = os.path.join(os.path.dirname(__file__), "configs", "config.ini")
+        conf_file = os.path.join(os.path.dirname(__file__), "config.ini")
         if not os.path.isfile(conf_file):
             raise FileExistsError('"{}" does not exist'.format(conf_file))
         self.conf_file = conf_file
