@@ -1,6 +1,6 @@
 # Created by .ignore support plugin (hsz.mobi)
 .idea/
 venv/
-/configs/config.ini
-CheckMadDevicesDaemon.sh
+config.ini
+RMDclientDaemon.sh
 

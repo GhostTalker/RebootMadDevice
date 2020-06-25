@@ -1,7 +1,7 @@
 {
-  "name": "RebootMadDevices",
-  "version": "1.0.1",
+  "name": "MAD Plugin - RebootMadDevices",
+  "version": "2.0.1",
   "author": "GhostTalker",
-  "copyright": "Copyright 2019, The GhostTalker project"
+  "copyright": "Copyright 2020, The GhostTalker project"
   "status": "Prod"
 }

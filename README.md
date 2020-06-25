@@ -1,4 +1,4 @@
-# RebootMadDevice
+# RebootMadDevice V2 - MAD Plugin
 Reboot MAD devices via ADB or PowerSwitch when device is not responding
 
 only works with Python 3.6 and above
@@ -7,49 +7,50 @@ Running the daemon is only possible with root user!
 
 #### Install:
 ```
+- Copy plugin from folder /MAD_plugin to <MAD plugin folder>/RebootMadDevice/ 
+- adjust plugin.ini to your requirements
 - pip3 install -r requirements.txt
 - pip3 install -r requirements_rpi.txt (only for raspberry - add support for GPIO and LED)
 - copy config.ini.example to config.ini and adjust the values
-- adjust CheckMadDevicesDaemon.sh with install path
+- adjust RMDclientDaemon.sh with install path
 - run chmod +x *.py
 - run chmod +x *.sh
 ```
 
 #### Using the daemon:
  
-
 The deamon has to be started with:
 ```
-CheckMadDevicesDaemon.sh start
+RMDclientDaemon.sh start
 ```
 if you want to check that is running:
 ```
-CheckMadDevicesDaemon.sh status
+RMDclientDaemon.sh status
 ```
 
 and if you want to stop
 ```
-CheckMadDevicesDaemon.sh stop
+RMDclientDaemon.sh stop
 ```
 
-
-
-#### Whats new:
+#### Features and supported hardware:
 ```
-- add support for external status LED via websocket (https://github.com/FabLab-Luenen/McLighting)
-- add support for PowerBoard (Link will follow)
-- devided requirements in two parts (general and raspi)
-- add status LED support for WS2812 led stripe
-- added Discord Webhook support
-- timeout can now be configured in config.ini
-- path for reboot script automaticly set
-- next reboot of a device only after defined timeframe
+- support for status LED with WS2812 led stripe
+- support for external status LED via websocket (https://github.com/FabLab-Luenen/McLighting)
+- usable with PowerBoard (Link will follow)
 - usable with external commands
 - usable with web api like sonoff
 - usable with gpio
-- it is configurable if you use the relay in NC or NO mode
-- fixed null values
-- fixed MITM auth
+- relay mode NC or NO
+```
+#### Whats new:
+```
+- MAD plugin 
+- server client architecture
+- timeout can now be configured in plugin.ini
+- next reboot of a device only after defined timeframe
+- Discord Webhook support
+- devided requirements in two parts (general and raspi)
 ```
 ## License
 See the [LICENSE](https://github.com/GhostTalker/RebootMadDevice/blob/master/LICENSE.md) file for license rights and limitations (MIT).

@@ -7,13 +7,11 @@
 [Enviroment]
 ADB_PATH: /usr/bin
 ADB_PORT: 5555
-LOG_CONSOLE_ONLY: <True/False>
-LOG_FILENAME: CheckMadDevices.log
-LOG_LEVEL: INFO
 
-[Discord]
-WEBHOOK_ENABLE: <True/False>
-WEBHOOKURL: https://discordapp.com/api/webhooks/xxxxxxxxxxx
+[MAD server]
+MADMIN_HOST: <Hostname or IP>
+PLUGIN_PORT: <50000>
+PLUGIN_TOKEN: 'changeit'
 
 [Status LED]
 LED_ENABLE: True
@@ -33,31 +31,6 @@ LED_BRIGHTNESS: 255
 LED_INVERT: False
 # WS for external LED
 LED_WS_EXTERNAL: ws://<IP>:<Port>
-
-[MAD server]
-MITM_PROTO: http
-MITM_RECEIVER_IP: 127.0.0.1
-MITM_RECEIVER_PORT: 8000
-MITM_RECEIVER_STATUS_ENDPOINT: status
-MITM_PASS: yourpass
-MADMIN_PROTO: http/https
-MADMIN_IP: 127.0.0.1
-MADMIN_PORT: 5000
-MADMIN_STATUS_ENDPOINT: get_status
-MADMIN_USER: madmin
-MADMIN_PASS: yourpass
-
-[Reboot Options]
-# time in s between checking all devices
-SLEEPTIME_BETWEEN_CHECK = 300
-# no mitm connect from device timeout
-MITM_TIMEOUT = 10
-# no data from device timeout
-PROTO_TIMEOUT = 30
-# force power switch when timeout longer than
-FORCE_REBOOT_TIMEOUT = 45
-# next reboot for a device after this waittime
-REBOOT_WAITTIME = 10
 
 [Devices]
 DEVICE_0: <ORINGIN_DEVICE_0>;<IP_ADRESS_DEVICE_0>
