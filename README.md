@@ -7,8 +7,11 @@ Running the daemon is only possible with root user!
 
 #### Install:
 ```
+MAD Server:
 - Copy plugin from folder /MAD_plugin to <MAD plugin folder>/RebootMadDevice/ 
 - adjust plugin.ini to your requirements
+
+Raspberry or Server:
 - pip3 install -r requirements.txt
 - pip3 install -r requirements_rpi.txt (only for raspberry - add support for GPIO and LED)
 - copy config.ini.example to config.ini and adjust the values
