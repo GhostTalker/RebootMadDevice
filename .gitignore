@@ -2,5 +2,5 @@
 .idea/
 venv/
 config.ini
-
+MAD_plugin/plugin.ini
 

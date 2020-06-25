@@ -1,0 +1,25 @@
+[plugin]
+pluginname = RebootMadDevice
+description = Reboot MAD Devices if they are not responding
+author = GhostTalker
+url = <madminurl>
+version = 1.0
+active = true
+
+[rebootoptions]
+sleeptime_between_check = 5
+mitm_timeout = 30
+proto_timeout = 30
+force_reboot_timeout =  30
+reboot_waittime = 20
+
+[socketserver]
+host = <hosturl>
+port = 50000
+
+[auth]
+token = changeit
+
+[discord]
+webhook_enable: <true or false>
+webhookurl: https://discord.com/api/webhooks/******
