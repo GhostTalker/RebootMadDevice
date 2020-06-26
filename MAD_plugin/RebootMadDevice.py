@@ -163,7 +163,7 @@ class RebootMadDevice(mapadroid.utils.pluginBase.Plugin):
                                                           'reboot_force': reboot_force,
                                                           'last_client_connect': last_client_connect}
 
-            self._mad['logger'].info('rmdStatusChecker: ' + str(self._device_status))
+            self._mad['logger'].debug('rmdStatusChecker: ' + str(self._device_status))
 
             self._firststart = False
             time.sleep(int(self._pluginconfig.get("rebootoptions", "sleeptime_between_check", fallback=5)) * 60)
