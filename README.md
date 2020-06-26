@@ -31,7 +31,7 @@ if you want to check that is running:
 RMDclientDaemon.sh status
 ```
 
-and if you want to stop
+and if you want to stop:
 ```
 RMDclientDaemon.sh stop
 ```

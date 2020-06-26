@@ -268,22 +268,22 @@ def doRebootDevice(DEVICE_ORIGIN_TO_REBOOT, FORCE_OPTION):
     counter = 0
     print('Origin to reboot is', DEVICE_ORIGIN_TO_REBOOT)
     print('Force option is', FORCE_OPTION)
-    if FORCE_OPTION == True:
-        rebootcode = conf_item.reboot_device_via_power(DEVICE_ORIGIN_TO_REBOOT)
+    if FORCE_OPTION == 'yes':
+        rebootcode = rmdItem.reboot_device_via_power(DEVICE_ORIGIN_TO_REBOOT)
         rebootcode += 50
         return rebootcode
     while counter < try_counter:
-        if device_list[DEVICE_ORIGIN_TO_REBOOT] in conf_item.list_adb_connected_devices():
+        if device_list[DEVICE_ORIGIN_TO_REBOOT] in rmdItem.list_adb_connected_devices():
             print("Device {} already connected".format(DEVICE_ORIGIN_TO_REBOOT))
-            rebootcode = conf_item.reboot_device(DEVICE_ORIGIN_TO_REBOOT)
+            rebootcode = rmdItem.reboot_device(DEVICE_ORIGIN_TO_REBOOT)
             return rebootcode
             break;
         else:
             print("Device {} not connected".format(DEVICE_ORIGIN_TO_REBOOT))
-            conf_item.connect_device(DEVICE_ORIGIN_TO_REBOOT)
+            rmdItem.connect_device(DEVICE_ORIGIN_TO_REBOOT)
             counter = counter + 1
     else:
-        rebootcode = conf_item.reboot_device_via_power(DEVICE_ORIGIN_TO_REBOOT)
+        rebootcode = rmdItem.reboot_device_via_power(DEVICE_ORIGIN_TO_REBOOT)
         return rebootcode
 
 
@@ -303,14 +303,12 @@ if __name__ == '__main__':
             import websocket
             from websocket import create_connection
 
-    device_list = rmdItem.create_device_list()
-
     while True:
-        for device in device_list:
+        for device in rmdItem.create_device_list():
             # create connection to server
             BUFFER_SIZE = 2000
             tcpClient = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            tcpClient.connect((rmdItem.madmin_host, rmdItem.plugin_port))
+            tcpClient.connect((rmdItem.madmin_host, int(rmdItem.plugin_port)))
 
             # send token for auth
             tcpClient.send(rmdItem.plugin_token.encode('utf-8'))
@@ -320,21 +318,24 @@ if __name__ == '__main__':
             data = pickle.loads(tcpClient.recv(BUFFER_SIZE))
             print("Client received data: ", data)
             # analyse data and do action if nessessary
-            reboot_nessessary = data['reboot_nessessary']
-            reboot_force = data['reboot_force']
-            print(reboot_nessessary, reboot_force)
-            if reboot_nessessary == 'yes':
-                rebootcode = doRebootDevice(device, reboot_force)
+            if data['reboot_nessessary'] == 'yes':
+                print("Reboot with force option will be done for device:" + device)
+                rebootcode = doRebootDevice(device, data['reboot_force'])
                 if rmdItem.led_enable == "True":
-                    rmdItem.setStatusLED(device_origin, 'crit')
-            elif reboot_nessessary == 'wait':
-                if rmdItem.led_enable == "True":
-                    rmdItem.setStatusLED(device_origin, 'warn')
-            else:
+                    rmdItem.setStatusLED(device, 'crit')
+            elif data['reboot_nessessary'] == 'rebooting':
+                print("Wait for device comming up after reboot:" + device)
                 rebootcode = 0
                 if rmdItem.led_enable == "True":
-                    rmdItem.setStatusLED(device_origin, 'ok')
+                    rmdItem.setStatusLED(device, 'warn')
+            else:
+                print("No reboot nessessary for device:" + device)
+                rebootcode = 0
+                if rmdItem.led_enable == "True":
+                    rmdItem.setStatusLED(device, 'ok')
             # send webhook info if reboot
-            tcpClient.send(rebootcode.encode('utf-8'))
+            print("Returncode for device " + device + " is " + str(rebootcode) )
+            tcpClient.send(str(rebootcode).encode('utf-8'))
             # close connection
             tcpClient.close()
+        time.sleep(120)

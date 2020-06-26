@@ -12,6 +12,7 @@ import time
 import datetime
 import json
 import pickle
+from discord_webhook import DiscordWebhook, DiscordEmbed
 
 
 class RebootMadDevice(mapadroid.utils.pluginBase.Plugin):
@@ -172,7 +173,7 @@ class RebootMadDevice(mapadroid.utils.pluginBase.Plugin):
 
         # receive token for auth
         if clientsocket.recv(8192).decode().replace("\r\n", "") == self._token:
-            self._mad['logger'].info('rmdclient: auth token successfull')
+            self._mad['logger'].debug('rmdclient: auth token successfull')
 
             # receive data from client
             device_origin = clientsocket.recv(8192).decode().replace("\r\n", "")
@@ -198,9 +199,10 @@ class RebootMadDevice(mapadroid.utils.pluginBase.Plugin):
                 # get returncode from client
                 try:
                     returncode = clientsocket.recv(8192).decode().replace("\r\n", "")
-                    if returncode > 0 and self._webhook_enable == 'true':
-                        self.create_webhook(device_origin, returncode)
+                    self._mad['logger'].info('rmdclient: got reboot returncode from client: ' + str(returncode))
+                    if int(returncode) > 0 and self._webhook_enable == 'yes':
                         self._mad['logger'].info('rmdserver: create webhook with returncode ' + str(returncode))
+                        self.create_webhook(device_origin, returncode)
                 except:
                     self._mad['logger'].error('rmdserver: error receiving returncode from reboot')
 
