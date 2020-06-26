@@ -1,9 +1,4 @@
 [plugin]
-pluginname = RebootMadDevice
-description = Reboot MAD Devices if they are not responding
-author = GhostTalker
-url = <madminurl>
-version = 1.0
 active = true
 
 [rebootoptions]

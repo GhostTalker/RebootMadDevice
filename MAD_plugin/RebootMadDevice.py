@@ -27,11 +27,12 @@ class RebootMadDevice(mapadroid.utils.pluginBase.Plugin):
         self._mad = mad
 
         self._pluginconfig.read(self._rootdir + "/plugin.ini")
-        self.author = self._pluginconfig.get("plugin", "author", fallback="unknown")
-        self.url = self._pluginconfig.get("plugin", "url", fallback="https://www.maddev.eu")
-        self.description = self._pluginconfig.get("plugin", "description", fallback="unknown")
-        self.version = self._pluginconfig.get("plugin", "version", fallback="unknown")
-        self.pluginname = self._pluginconfig.get("plugin", "pluginname", fallback="https://www.maddev.eu")
+        self._versionconfig.read(self._rootdir + "/version.mpl")
+        self.author = self._versionconfig.get("plugin", "author", fallback="unknown")
+        self.url = self._versionconfig.get("plugin", "url", fallback="https://www.maddev.eu")
+        self.description = self._versionconfig.get("plugin", "description", fallback="unknown")
+        self.version = self._versionconfig.get("plugin", "version", fallback="unknown")
+        self.pluginname = self._versionconfig.get("plugin", "pluginname", fallback="https://www.maddev.eu")
         self.staticpath = self._rootdir + "/static/"
         self.templatepath = self._rootdir + "/template/"
 
@@ -50,11 +51,12 @@ class RebootMadDevice(mapadroid.utils.pluginBase.Plugin):
                                      template_folder=self.templatepath)
 
             for route, view_func in self._routes:
-                self._plugin.route(route, methods=['GET', 'POST'])(view_func)
+                self._plugin.add_url_rule(route, route.replace("/", ""), view_func=view_func)
 
             for name, link, description in self._hotlink:
-                self._mad['madmin'].add_plugin_hotlink(name, link, self.pluginname, self.description, self.author,
-                                                       self.url, description, self.version)
+                self._mad['madmin'].add_plugin_hotlink(name, self._plugin.name + "." + link.replace("/", ""),
+                                                       self.pluginname, self.description, self.author, self.url,
+                                                       description, self.version)
 
     def perform_operation(self):
         """The actual implementation of the identity plugin is to just return the

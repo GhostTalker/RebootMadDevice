@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 __author__ = "GhostTalker"
+__name__ = "MAD Plugin - RebootMadDevices"
 __copyright__ = "Copyright 2020, The GhostTalker project"
-__version__ = "2.0.2"
+__version__ = "2.0.3"
 __status__ = "PROD"
 
 # generic/built-in and other libs
