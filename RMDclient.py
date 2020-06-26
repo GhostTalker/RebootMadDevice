@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 __author__ = "GhostTalker"
 __copyright__ = "Copyright 2020, The GhostTalker project"
-__version__ = "2.0.1"
+__version__ = "2.0.2"
 __status__ = "PROD"
 
 # generic/built-in and other libs
@@ -305,37 +305,41 @@ if __name__ == '__main__':
 
     while True:
         for device in rmdItem.create_device_list():
-            # create connection to server
-            BUFFER_SIZE = 2000
-            tcpClient = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            tcpClient.connect((rmdItem.madmin_host, int(rmdItem.plugin_port)))
+            try:
+                # create connection to server
+                BUFFER_SIZE = 2000
+                tcpClient = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                tcpClient.connect((rmdItem.madmin_host, int(rmdItem.plugin_port)))
 
-            # send token for auth
-            tcpClient.send(rmdItem.plugin_token.encode('utf-8'))
-            # send device origin
-            tcpClient.send(device.encode('utf-8'))
-            # receive device status data
-            data = pickle.loads(tcpClient.recv(BUFFER_SIZE))
-            print("Client received data: ", data)
-            # analyse data and do action if nessessary
-            if data['reboot_nessessary'] == 'yes':
-                print("Reboot with force option will be done for device:" + device)
-                rebootcode = doRebootDevice(device, data['reboot_force'])
-                if rmdItem.led_enable == "True":
-                    rmdItem.setStatusLED(device, 'crit')
-            elif data['reboot_nessessary'] == 'rebooting':
-                print("Wait for device comming up after reboot:" + device)
-                rebootcode = 0
-                if rmdItem.led_enable == "True":
-                    rmdItem.setStatusLED(device, 'warn')
-            else:
-                print("No reboot nessessary for device:" + device)
-                rebootcode = 0
-                if rmdItem.led_enable == "True":
-                    rmdItem.setStatusLED(device, 'ok')
-            # send webhook info if reboot
-            print("Returncode for device " + device + " is " + str(rebootcode) )
-            tcpClient.send(str(rebootcode).encode('utf-8'))
-            # close connection
-            tcpClient.close()
+                # send token for auth
+                tcpClient.send(rmdItem.plugin_token.encode('utf-8'))
+                # send device origin
+                tcpClient.send(device.encode('utf-8'))
+                # receive device status data
+                data = pickle.loads(tcpClient.recv(BUFFER_SIZE))
+                print("Client received data: ", data)
+                # analyse data and do action if nessessary
+                if data['reboot_nessessary'] == 'yes':
+                    print("Reboot with force option will be done for device:" + device)
+                    rebootcode = doRebootDevice(device, data['reboot_force'])
+                    if rmdItem.led_enable == "True":
+                        rmdItem.setStatusLED(device, 'crit')
+                elif data['reboot_nessessary'] == 'rebooting':
+                    print("Wait for device comming up after reboot:" + device)
+                    rebootcode = 0
+                    if rmdItem.led_enable == "True":
+                        rmdItem.setStatusLED(device, 'warn')
+                else:
+                    print("No reboot nessessary for device:" + device)
+                    rebootcode = 0
+                    if rmdItem.led_enable == "True":
+                        rmdItem.setStatusLED(device, 'ok')
+                # send webhook info if reboot
+                print("Returncode for device " + device + " is " + str(rebootcode))
+                tcpClient.send(str(rebootcode).encode('utf-8'))
+                # close connection
+                tcpClient.close()
+            except:
+                print("Error with connection to RMDserver. Sleep for 60s and then retry!")
+                time.sleep(60)
         time.sleep(120)
