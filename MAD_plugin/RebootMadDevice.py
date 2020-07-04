@@ -153,6 +153,7 @@ class RebootMadDevice(mapadroid.utils.pluginBase.Plugin):
                                 self.calc_past_min_from_now(data_plus_sleep) > int(self._reboot_waittime):
                             reboot_force = 'yes'
                     else:
+                        reboot_force = 'no'
                         reboot_nessessary = 'no'
 
                     # save all values to device_status
