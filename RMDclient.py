@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 __author__ = "GhostTalker"
-__name__ = "MAD Plugin - RebootMadDevices"
+#__name__ = "MAD Plugin - RebootMadDevices"
 __copyright__ = "Copyright 2020, The GhostTalker project"
 __version__ = "2.0.3"
 __status__ = "PROD"
@@ -287,8 +287,9 @@ def doRebootDevice(DEVICE_ORIGIN_TO_REBOOT, FORCE_OPTION):
         rebootcode = rmdItem.reboot_device_via_power(DEVICE_ORIGIN_TO_REBOOT)
         return rebootcode
 
-
+print("End of Class and Funktions")
 if __name__ == '__main__':
+    print("starting main funktion")
     rmdItem = rmdItem()
     # GPIO import libs
     if rmdItem.powerswitchcommands['switch_mode'] == 'GPIO':
