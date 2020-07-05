@@ -4,7 +4,7 @@
 #
 __author__ = "GhostTalker"
 __copyright__ = "Copyright 2020, The GhostTalker project"
-__version__ = "2.0.4"
+__version__ = "2.0.5"
 __status__ = "PROD"
 
 # generic/built-in and other libs
@@ -289,9 +289,7 @@ def doRebootDevice(DEVICE_ORIGIN_TO_REBOOT, FORCE_OPTION):
         rebootcode = rmdItem.reboot_device_via_power(DEVICE_ORIGIN_TO_REBOOT)
         return rebootcode
 
-print("End of Class and Funktions")
 if __name__ == '__main__':
-    print("starting main funktion")
     rmdItem = rmdItem()
     # GPIO import libs
     if rmdItem.powerswitchcommands['switch_mode'] == 'GPIO':
@@ -314,7 +312,7 @@ if __name__ == '__main__':
                 BUFFER_SIZE = 2000
                 tcpClient = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 tcpClient.connect((rmdItem.madmin_host, int(rmdItem.plugin_port)))
-
+                time.sleep(5)
                 # send token for auth
                 tcpClient.send(rmdItem.plugin_token.encode('utf-8'))
                 # send device origin
@@ -343,6 +341,7 @@ if __name__ == '__main__':
                 tcpClient.send(str(rebootcode).encode('utf-8'))
                 # close connection
                 tcpClient.close()
+                time.sleep(5)
             except:
                 print("Error with connection to RMDserver. Sleep for 60s and then retry!")
                 time.sleep(60)

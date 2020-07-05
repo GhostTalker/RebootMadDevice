@@ -78,7 +78,7 @@ class RebootMadDevice(mapadroid.utils.pluginBase.Plugin):
         self._reboothistory: dict = {}
         self._clienthistory: dict = {}
         self._device_status: dict = {}
-        self._firststart = False
+        self._firststart = True
         self._last_client_connect = None
 
         self._token = self._pluginconfig.get("auth", "token", fallback=None)
@@ -143,8 +143,8 @@ class RebootMadDevice(mapadroid.utils.pluginBase.Plugin):
 
                     # check if reboot is nessessary
                     if injection_status == False and \
-                            self.calc_past_min_from_now(last_mitm_data) > int(self._mitm_timeout) or \
-                            self.calc_past_min_from_now(data_plus_sleep) > int(self._proto_timeout):
+                            (self.calc_past_min_from_now(last_mitm_data) > int(self._mitm_timeout) or \
+                            self.calc_past_min_from_now(data_plus_sleep) > int(self._proto_timeout)):
                         reboot_nessessary = 'yes'
                         reboot_force = 'no'
                         if self.calc_past_min_from_now(last_reboot_time) < int(self._reboot_waittime):
@@ -166,7 +166,7 @@ class RebootMadDevice(mapadroid.utils.pluginBase.Plugin):
                                                           'reboot_force': reboot_force,
                                                           'last_client_connect': last_client_connect}
 
-            self._mad['logger'].debug('rmdStatusChecker: ' + str(self._device_status))
+            self._mad['logger'].info('rmdStatusChecker: ' + str(self._device_status))
 
             self._firststart = False
             time.sleep(int(self._pluginconfig.get("rebootoptions", "sleeptime_between_check", fallback=5)) * 60)
@@ -194,6 +194,7 @@ class RebootMadDevice(mapadroid.utils.pluginBase.Plugin):
                     if self._device_status[device_origin]['reboot_nessessary'] == 'yes':
                         self._device_status[device_origin]['last_reboot_time'] = self.makeTimestamp()
                         self._reboothistory[device_origin] = self.makeTimestamp()
+                        self._device_status[device_origin]['reboot_nessessary'] = 'rebooting'
                         self._mad['logger'].debug(
                             'rmdserver: data send to client ' + str(self._device_status[device_origin]))
                 except:
@@ -216,6 +217,7 @@ class RebootMadDevice(mapadroid.utils.pluginBase.Plugin):
         clientsocket.close()
 
     def rmdSocketServer(self):
+        time.sleep(360)
         s = socket.socket()  # Create a socket object
         host = self._host  # Get local machine name
         port = int(self._port)  # Reserve a port for your service.
