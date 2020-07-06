@@ -315,6 +315,7 @@ if __name__ == '__main__':
                 time.sleep(5)
                 # send token for auth
                 tcpClient.send(rmdItem.plugin_token.encode('utf-8'))
+                time.sleep(5)
                 # send device origin
                 tcpClient.send(device.encode('utf-8'))
                 # receive device status data
