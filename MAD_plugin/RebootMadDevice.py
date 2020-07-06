@@ -142,9 +142,8 @@ class RebootMadDevice(mapadroid.utils.pluginBase.Plugin):
                     last_client_connect = self._clienthistory.get(device_origin, None)
 
                     # check if reboot is nessessary
-                    if injection_status == False and \
-                            (self.calc_past_min_from_now(last_mitm_data) > int(self._mitm_timeout) or \
-                            self.calc_past_min_from_now(data_plus_sleep) > int(self._proto_timeout)):
+                    if self.calc_past_min_from_now(last_mitm_data) > int(self._mitm_timeout) or \
+                            self.calc_past_min_from_now(data_plus_sleep) > int(self._proto_timeout):
                         reboot_nessessary = 'yes'
                         reboot_force = 'no'
                         if self.calc_past_min_from_now(last_reboot_time) < int(self._reboot_waittime):
@@ -166,7 +165,7 @@ class RebootMadDevice(mapadroid.utils.pluginBase.Plugin):
                                                           'reboot_force': reboot_force,
                                                           'last_client_connect': last_client_connect}
 
-            self._mad['logger'].info('rmdStatusChecker: ' + str(self._device_status))
+            self._mad['logger'].debug('rmdStatusChecker: ' + str(self._device_status))
 
             self._firststart = False
             time.sleep(int(self._pluginconfig.get("rebootoptions", "sleeptime_between_check", fallback=5)) * 60)
