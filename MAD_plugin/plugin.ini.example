@@ -16,5 +16,5 @@ port = 50000
 token = changeit
 
 [discord]
-webhook_enable: <true or false>
+webhook_enable: <yes or no>
 webhookurl: https://discord.com/api/webhooks/******

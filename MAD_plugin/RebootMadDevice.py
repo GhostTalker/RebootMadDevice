@@ -115,6 +115,8 @@ class RebootMadDevice(mapadroid.utils.pluginBase.Plugin):
         now = datetime.datetime.now()
         if timestamp == None or timestamp == "":
             return 99999
+        elif datetime.datetime.fromtimestamp(timestamp) > now:
+            return 0
         diffToNow = now - datetime.datetime.fromtimestamp(timestamp)
         past_min_from_now = int(diffToNow.seconds / 60)
         return int(past_min_from_now)
@@ -133,6 +135,7 @@ class RebootMadDevice(mapadroid.utils.pluginBase.Plugin):
                     # get all values from mad
                     device_origin = device['name']
                     worker_status = device['rmname']
+                    worker_mode = device['mode']
                     injection_status = mitm_stats['origin_status'][device_origin]['injection_status']
                     last_mitm_data = mitm_stats['origin_status'][device_origin]['latest_data']
                     last_proto_data = device['lastProtoDateTime']
@@ -142,11 +145,21 @@ class RebootMadDevice(mapadroid.utils.pluginBase.Plugin):
                     last_client_connect = self._clienthistory.get(device_origin, None)
 
                     # check if reboot is nessessary
-                    if self.calc_past_min_from_now(last_mitm_data) > int(self._mitm_timeout) or \
+                    if (injection_status == False and self.calc_past_min_from_now(last_mitm_data) > int(self._mitm_timeout)) or \
                             self.calc_past_min_from_now(data_plus_sleep) > int(self._proto_timeout):
+
+                        self._mad['logger'].debug('rmdStatusChecker - device: ' + str(device_origin))
+                        self._mad['logger'].debug('rmdStatusChecker - timestamp: ' + str(self.makeTimestamp()))
+                        self._mad['logger'].debug('rmdStatusChecker - last_mitm_data: ' + str(last_mitm_data))
+                        self._mad['logger'].debug('rmdStatusChecker - sleep_time: ' + str(sleep_time))
+                        self._mad['logger'].debug('rmdStatusChecker - data_plus_sleep: ' + str(data_plus_sleep))
+                        self._mad['logger'].debug('rmdStatusChecker - minutes_last_mitm_data: ' + str(self.calc_past_min_from_now(last_mitm_data)))
+                        self._mad['logger'].debug('rmdStatusChecker - minutes_last_data_plus_sleep: ' + str(self.calc_past_min_from_now(data_plus_sleep)))
+							
                         reboot_nessessary = 'yes'
                         reboot_force = 'no'
                         if self.calc_past_min_from_now(last_reboot_time) < int(self._reboot_waittime):
+                            self._mad['logger'].debug('rmdStatusChecker - minutes_last_reboot_time: ' + str(self.calc_past_min_from_now(last_reboot_time)))
                             reboot_nessessary = 'rebooting'
                         if self.calc_past_min_from_now(last_mitm_data) > int(self._reboot_waittime) or \
                                 self.calc_past_min_from_now(data_plus_sleep) > int(self._reboot_waittime):
@@ -158,6 +171,7 @@ class RebootMadDevice(mapadroid.utils.pluginBase.Plugin):
                     # save all values to device_status
                     self._device_status[device_origin] = {'injection_status': injection_status,
                                                           'worker_status': worker_status,
+                                                          'worker_mode': worker_mode,
                                                           'last_mitm_data': last_mitm_data,
                                                           'last_proto_data': last_proto_data,
                                                           'last_reboot_time': last_reboot_time,

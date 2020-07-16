@@ -32,6 +32,7 @@
     <li><a href="#clientdaemon">Client Daemon</a></li>
 </ul>
 Reboot MAD devices via ADB or PowerSwitch when device is not responding<br><br>
+After restarting MAD it will take about 5 minutes before a client can connect. This time is nessessary to give MAD enough time to collect the nessessary data for the plugin.<br><br>
 <h3 id="features">Features and supported hardware</h3>
 <code>
     &nbsp;&nbsp;&nbsp;- support for status LED with WS2812 led stripe<br>
@@ -62,7 +63,7 @@ Reboot MAD devices via ADB or PowerSwitch when device is not responding<br><br>
     &nbsp;&nbsp;&nbsp;token = changeit<br>
     &nbsp;&nbsp;&nbsp;<br>
     &nbsp;&nbsp;&nbsp;[discord]<br>
-    &nbsp;&nbsp;&nbsp;webhook_enable: <true or false><br>
+    &nbsp;&nbsp;&nbsp;webhook_enable: <yes or no><br>
     &nbsp;&nbsp;&nbsp;webhookurl: https://discord.com/api/webhooks/******<br>
 </code><br><br>
 <h3 id="configclient">Config Client</h3>
