@@ -8,6 +8,11 @@
 ADB_PATH: /usr/bin
 ADB_PORT: 5555
 
+[Logging]
+LOG_MODE: <console/file/off>
+LOG_FILENAME: RMDclient.log
+LOG_LEVEL: <INFO/DEBUG>
+
 [MAD server]
 MADMIN_HOST: <Hostname or IP>
 PLUGIN_PORT: <50000>

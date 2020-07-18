@@ -2,6 +2,7 @@
 active = true
 
 [rebootoptions]
+#values are in minutes
 sleeptime_between_check = 5
 mitm_timeout = 30
 proto_timeout = 30
