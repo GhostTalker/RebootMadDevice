@@ -285,7 +285,7 @@ def doRebootDevice(DEVICE_ORIGIN_TO_REBOOT, FORCE_OPTION):
     # EXIT Code +50 = force Option
     try_counter = 2
     counter = 0
-    logging.info("Origin to reboot is: {}".format(DEVICE_ORIGIN_TO_REBOOT)
+    logging.info("Origin to reboot is: {}".format(DEVICE_ORIGIN_TO_REBOOT))
     logging.info("Force option is: {}".format(FORCE_OPTION))
     if FORCE_OPTION == 'yes':
         rebootcode = rmdItem.reboot_device_via_power(DEVICE_ORIGIN_TO_REBOOT)
@@ -361,11 +361,11 @@ if __name__ == '__main__':
                                 logging.debug("Client received data: " + str(data))
                                 # analyse data and do action if nessessary
                                 if data['reboot_nessessary'] == 'yes':
-                                    logging.info("Reboot nessessary for device: {}. Initialize reboot.".format(device))
+                                    logging.info("Reboot nessessary for device {}. Initialize reboot.".format(device))
                                     rebootcode = doRebootDevice(device, data['reboot_force'])
                                     try:
                                         if rmdItem.led_enable == "True":
-                                            logging.debug("Set status LED to critical for device: {}".format(device))
+                                            logging.debug("Set status LED to critical for device {}".format(device))
                                             rmdItem.setStatusLED(device, 'crit')
                                     except:
                                         logging.error("Error setting status LED for device: {} ".format(device))
@@ -374,19 +374,19 @@ if __name__ == '__main__':
                                     rebootcode = 0
                                     try:
                                         if rmdItem.led_enable == "True":
-                                            logging.debug("Set status LED to warning for device: {}".format(device))
+                                            logging.debug("Set status LED to warning for device {}".format(device))
                                             rmdItem.setStatusLED(device, 'warn')
                                     except:
-                                        logging.error("Error setting status LED for device: {} ".format(device))
+                                        logging.error("Error setting status LED for device {} ".format(device))
                                 else:
                                     logging.info("No reboot nessessary for device: {}".format(device))
                                     rebootcode = 0
                                     try:
                                         if rmdItem.led_enable == "True":
-                                            logging.debug("Set status LED to ok for device: {}".format(device))
+                                            logging.debug("Set status LED to ok for device {}".format(device))
                                             rmdItem.setStatusLED(device, 'ok')
                                     except:
-                                        logging.error("Error setting status LED for device: {} ".format(device))
+                                        logging.error("Error setting status LED for device {} ".format(device))
                                 # send webhook info if reboot
                                 try:
                                     logging.info("Returncode for device " + device + " is " + str(rebootcode))
@@ -394,7 +394,7 @@ if __name__ == '__main__':
                                 except:
                                     logging.error("Error while sending returncode for device {} to RMDserver".format(device))
                             except:
-                                logging.error("Error receiving status data for device: {} ".format(device))
+                                logging.error("Error receiving status data for device {} ".format(device))
                         except:
                              logging.error("Error while sending device_origin {} to RMDserver.".format(device))
                     except:
