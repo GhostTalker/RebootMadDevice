@@ -4,7 +4,7 @@
 #
 __author__ = "GhostTalker"
 __copyright__ = "Copyright 2020, The GhostTalker project"
-__version__ = "2.0.11"
+__version__ = "2.0.12"
 __status__ = "PROD"
 
 # generic/built-in and other libs
@@ -285,8 +285,8 @@ def doRebootDevice(DEVICE_ORIGIN_TO_REBOOT, FORCE_OPTION):
     # EXIT Code +50 = force Option
     try_counter = 2
     counter = 0
-    logging.info('Origin to reboot is', DEVICE_ORIGIN_TO_REBOOT)
-    logging.info('Force option is', FORCE_OPTION)
+    logging.info("Origin to reboot is: {}".format(DEVICE_ORIGIN_TO_REBOOT)
+    logging.info("Force option is: {}".format(FORCE_OPTION))
     if FORCE_OPTION == 'yes':
         rebootcode = rmdItem.reboot_device_via_power(DEVICE_ORIGIN_TO_REBOOT)
         rebootcode += 50
