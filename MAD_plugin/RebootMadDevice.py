@@ -82,10 +82,11 @@ class RebootMadDevice(mapadroid.utils.pluginBase.Plugin):
         self._last_client_connect = None
 
         self._token = self._pluginconfig.get("auth", "token", fallback=None)
+        self._try_adb_first = self._pluginconfig.get("rebootoptions", "try_adb_first", fallback='no')
         self._mitm_timeout = self._pluginconfig.get("rebootoptions", "mitm_timeout", fallback=15)
         self._proto_timeout = self._pluginconfig.get("rebootoptions", "proto_timeout", fallback=15)
-        self._force_reboot_timeout = self._pluginconfig.get("rebootoptions", "force_reboot_timeout", fallback=30)
-        self._reboot_waittime = self._pluginconfig.get("rebootoptions", "reboot_waittime", fallback=30)
+        self._force_reboot_timeout = self._pluginconfig.get("rebootoptions", "force_reboot_timeout", fallback=20)
+        self._reboot_waittime = self._pluginconfig.get("rebootoptions", "reboot_waittime", fallback=20)
         self._host = self._pluginconfig.get("socketserver", "host", fallback=None)
         self._port = self._pluginconfig.get("socketserver", "port", fallback=None)
         self._webhook_enable = self._pluginconfig.get("discord", "webhook_enable", fallback=None)
@@ -144,29 +145,44 @@ class RebootMadDevice(mapadroid.utils.pluginBase.Plugin):
                     last_reboot_time = self._reboothistory.get(device_origin, None)
                     last_client_connect = self._clienthistory.get(device_origin, None)
 
-                    # check if reboot is nessessary
-                    if (injection_status == False and self.calc_past_min_from_now(last_mitm_data) > int(self._mitm_timeout)) or \
-                            self.calc_past_min_from_now(data_plus_sleep) > int(self._proto_timeout):
+                    self._mad['logger'].debug('rmdStatusChecker - device: ' + str(device_origin))
+                    self._mad['logger'].debug('rmdStatusChecker - timestamp: ' + str(self.makeTimestamp()))
+                    self._mad['logger'].debug('rmdStatusChecker - last_mitm_data: ' + str(last_mitm_data))
+                    self._mad['logger'].debug('rmdStatusChecker - sleep_time: ' + str(sleep_time))
+                    self._mad['logger'].debug('rmdStatusChecker - data_plus_sleep: ' + str(data_plus_sleep))
+                    self._mad['logger'].debug('rmdStatusChecker - minutes_last_mitm_data: ' + str(self.calc_past_min_from_now(last_mitm_data)))
+                    self._mad['logger'].debug('rmdStatusChecker - minutes_last_data_plus_sleep: ' + str(self.calc_past_min_from_now(data_plus_sleep)))
 
-                        self._mad['logger'].debug('rmdStatusChecker - device: ' + str(device_origin))
-                        self._mad['logger'].debug('rmdStatusChecker - timestamp: ' + str(self.makeTimestamp()))
-                        self._mad['logger'].debug('rmdStatusChecker - last_mitm_data: ' + str(last_mitm_data))
-                        self._mad['logger'].debug('rmdStatusChecker - sleep_time: ' + str(sleep_time))
-                        self._mad['logger'].debug('rmdStatusChecker - data_plus_sleep: ' + str(data_plus_sleep))
-                        self._mad['logger'].debug('rmdStatusChecker - minutes_last_mitm_data: ' + str(self.calc_past_min_from_now(last_mitm_data)))
-                        self._mad['logger'].debug('rmdStatusChecker - minutes_last_data_plus_sleep: ' + str(self.calc_past_min_from_now(data_plus_sleep)))
-							
-                        reboot_nessessary = 'yes'
-                        reboot_force = 'no'
-                        if self.calc_past_min_from_now(last_reboot_time) < int(self._reboot_waittime):
-                            self._mad['logger'].debug('rmdStatusChecker - minutes_last_reboot_time: ' + str(self.calc_past_min_from_now(last_reboot_time)))
-                            reboot_nessessary = 'rebooting'
-                        if self.calc_past_min_from_now(last_mitm_data) > int(self._reboot_waittime) or \
-                                self.calc_past_min_from_now(data_plus_sleep) > int(self._reboot_waittime):
+                    # check if reboot is nessessary
+
+                    if self._try_adb_first == 'no':
+                        if (injection_status == False and self.calc_past_min_from_now(last_mitm_data) > int(self._mitm_timeout)) or \
+                                self.calc_past_min_from_now(data_plus_sleep) > int(self._proto_timeout):
+                            self._mad['logger'].debug('rmdStatusChecker - reboot nessessary: yes')					
+                            reboot_nessessary = 'yes'
                             reboot_force = 'yes'
+                            if self.calc_past_min_from_now(last_reboot_time) < int(self._reboot_waittime):
+                                self._mad['logger'].debug('rmdStatusChecker - reboot nessessary: still rebooting')
+                                reboot_nessessary = 'rebooting'
+                        else:
+                            reboot_force = 'no'
+                            reboot_nessessary = 'no'
                     else:
-                        reboot_force = 'no'
-                        reboot_nessessary = 'no'
+                        if (injection_status == False and self.calc_past_min_from_now(last_mitm_data) > int(self._mitm_timeout)) or \
+                                self.calc_past_min_from_now(data_plus_sleep) > int(self._proto_timeout):
+                            self._mad['logger'].debug('rmdStatusChecker - reboot nessessary: yes')					
+                            reboot_nessessary = 'yes'
+                            reboot_force = 'no'
+                            if self.calc_past_min_from_now(last_reboot_time) < int(self._reboot_waittime):
+                                self._mad['logger'].debug('rmdStatusChecker - reboot nessessary: still rebooting')
+                                reboot_nessessary = 'rebooting'
+                            if self.calc_past_min_from_now(last_mitm_data) > int(self._force_reboot_timeout) or \
+                                    self.calc_past_min_from_now(data_plus_sleep) > int(self._force_reboot_timeout):
+                                self._mad['logger'].debug('rmdStatusChecker - force reboot: yes')
+                                reboot_force = 'yes'
+                        else:
+                            reboot_force = 'no'
+                            reboot_nessessary = 'no'
 
                     # save all values to device_status
                     self._device_status[device_origin] = {'injection_status': injection_status,

@@ -2,12 +2,13 @@
 active = true
 
 [rebootoptions]
+try_adb_first = <yes or no>
 #values are in minutes
 sleeptime_between_check = 5
-mitm_timeout = 30
-proto_timeout = 30
-force_reboot_timeout =  30
-reboot_waittime = 20
+mitm_timeout = 15
+proto_timeout = 15
+force_reboot_timeout =  20
+reboot_waittime = 15
 
 [socketserver]
 host = <hosturl>
