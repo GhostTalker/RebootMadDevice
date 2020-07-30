@@ -4,7 +4,7 @@
 #
 __author__ = "GhostTalker"
 __copyright__ = "Copyright 2020, The GhostTalker project"
-__version__ = "2.0.12"
+__version__ = "2.0.13"
 __status__ = "PROD"
 
 # generic/built-in and other libs
@@ -99,24 +99,37 @@ class rmdItem(object):
                 logging.info("Cleanup done!")
 
             if powerswitch_dict['''relay_mode'''] == 'NO':
+                logging.debug("Relay_mode: " + powerswitch_dict['''relay_mode'''])
                 # GPIO.setup(gpionr, GPIO.OUT, initial=GPIO.HIGH)
+                logging.debug("setting GPIO setup to: GPIO.OUT")
                 GPIO.setup(gpionr, GPIO.OUT)
+                logging.debug("setting GPIO output to: GPIO.HIGH")
                 GPIO.output(gpionr, GPIO.HIGH)
             elif powerswitch_dict['''relay_mode'''] == 'NC':
+                logging.debug("Relay_mode: " + powerswitch_dict['''relay_mode'''])
                 # GPIO.setup(gpionr, GPIO.OUT, initial=GPIO.LOW)
+                logging.debug("setting GPIO setup to: GPIO.OUT")
                 GPIO.setup(gpionr, GPIO.OUT)
+                logging.debug("setting GPIO output to: GPIO.LOW")
                 GPIO.output(gpionr, GPIO.LOW)
             else:
                 logging.error("wrong relay_mode in config")
+            logging.debug("sleeping 10s")
             time.sleep(10)
             logging.info("turn GPIO PowerSwitch on")
             if powerswitch_dict['''relay_mode'''] == 'NO':
+                logging.debug("Relay_mode: " + powerswitch_dict['''relay_mode'''])
                 # GPIO.output(gpionr, GPIO.LOW)
+                logging.debug("setting GPIO setup to: GPIO.OUT")
                 GPIO.setup(gpionr, GPIO.OUT)
+                logging.debug("setting GPIO output to: GPIO.LOW")
                 GPIO.output(gpionr, GPIO.LOW)
             elif powerswitch_dict['''relay_mode'''] == 'NC':
+                logging.debug("Relay_mode: " + powerswitch_dict['''relay_mode'''])
                 # GPIO.output(gpionr, GPIO.HIGH)
+                logging.debug("setting GPIO setup to: GPIO.OUT")
                 GPIO.setup(gpionr, GPIO.OUT)
+                logging.debug("setting GPIO output to: GPIO.HIGH")
                 GPIO.output(gpionr, GPIO.HIGH)
             else:
                 logging.error("wrong relay_mode in config")
@@ -125,6 +138,7 @@ class rmdItem(object):
                 GPIO.cleanup()
                 logging.info("CleanupParameter: " + powerswitch_dict['''cleanup_mode'''])
                 logging.info("Cleanup done!")
+            logging.debug("returncode: 300")
             return 300
         elif powerswitch_dict['''switch_mode'''] == 'CMD':
             poweron = "poweron_{}".format(dev_nr)
@@ -323,7 +337,7 @@ if __name__ == '__main__':
 
     # LED initalize / import libs
     if rmdItem.led_enable == "True":
-        logging.debug("LED feature activated")
+        logging.debug("LED feature activated")        
         if rmdItem.led_type == "internal":
             logging.debug("import rpi_ws281x libs")
             from rpi_ws281x import *
@@ -338,7 +352,7 @@ if __name__ == '__main__':
     try:
         while True:
             for device in rmdItem.create_device_list():
-                try:
+                try:        
                     # create connection to server
                     BUFFER_SIZE = 2000
                     tcpClient = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -353,55 +367,55 @@ if __name__ == '__main__':
                         time.sleep(5)
                         # send device origin
                         try:
-                            logging.debug("Sending device_origin: {}".format(device))
+                            logging.debug("Sending device_origin: {}".format(device))                
                             tcpClient.send(device.encode('utf-8'))
-                            try:
-                                # receive device status data
-                                data = pickle.loads(tcpClient.recv(BUFFER_SIZE))
-                                logging.debug("Client received data: " + str(data))
-                                # analyse data and do action if nessessary
-                                if data['reboot_nessessary'] == 'yes':
-                                    logging.info("Reboot nessessary for device {}. Initialize reboot.".format(device))
-                                    rebootcode = doRebootDevice(device, data['reboot_force'])
-                                    try:
-                                        if rmdItem.led_enable == "True":
-                                            logging.debug("Set status LED to critical for device {}".format(device))
-                                            rmdItem.setStatusLED(device, 'crit')
-                                    except:
-                                        logging.error("Error setting status LED for device: {} ".format(device))
-                                elif data['reboot_nessessary'] == 'rebooting':
-                                    logging.debug("Wait for device {} comming up after reboot.".format(device))
-                                    rebootcode = 0
-                                    try:
-                                        if rmdItem.led_enable == "True":
-                                            logging.debug("Set status LED to warning for device {}".format(device))
-                                            rmdItem.setStatusLED(device, 'warn')
-                                    except:
-                                        logging.error("Error setting status LED for device {} ".format(device))
-                                else:
-                                    logging.info("No reboot nessessary for device: {}".format(device))
-                                    rebootcode = 0
-                                    try:
-                                        if rmdItem.led_enable == "True":
-                                            logging.debug("Set status LED to ok for device {}".format(device))
-                                            rmdItem.setStatusLED(device, 'ok')
-                                    except:
-                                        logging.error("Error setting status LED for device {} ".format(device))
-                                # send webhook info if reboot
-                                try:
-                                    logging.info("Returncode for device " + device + " is " + str(rebootcode))
-                                    tcpClient.send(str(rebootcode).encode('utf-8'))
-                                except:
-                                    logging.error("Error while sending returncode for device {} to RMDserver".format(device))
-                            except:
-                                logging.error("Error receiving status data for device {} ".format(device))
                         except:
-                             logging.error("Error while sending device_origin {} to RMDserver.".format(device))
+                             logging.error("Error while sending device_origin {} to RMDserver.".format(device))  
+                        # receive device status data
+                        try:
+                            data = pickle.loads(tcpClient.recv(BUFFER_SIZE))
+                            logging.debug("Client received data: " + str(data))
+                        except:
+                            logging.error("Error receiving status data for device {} ".format(device))								
+                        # analyse data and do action if nessessary
+                        if data['reboot_nessessary'] == 'yes':
+                            logging.info("Reboot nessessary for device {}. Initialize reboot.".format(device))
+                            rebootcode = doRebootDevice(device, data['reboot_force'])
+                            try:
+                                if rmdItem.led_enable == "True":
+                                    logging.debug("Set status LED to critical for device {}".format(device))
+                                    rmdItem.setStatusLED(device, 'crit')
+                            except:
+                                logging.error("Error setting status LED for device: {} ".format(device))
+                        elif data['reboot_nessessary'] == 'rebooting':
+                            logging.debug("Wait for device {} comming up after reboot.".format(device))
+                            rebootcode = 0
+                            try:
+                                if rmdItem.led_enable == "True":
+                                    logging.debug("Set status LED to warning for device {}".format(device))
+                                    rmdItem.setStatusLED(device, 'warn')
+                            except:
+                                logging.error("Error setting status LED for device {} ".format(device))
+                        else:
+                            logging.info("No reboot nessessary for device: {}".format(device))
+                            rebootcode = 0
+                            try:
+                                if rmdItem.led_enable == "True":
+                                    logging.debug("Set status LED to ok for device {}".format(device))
+                                    rmdItem.setStatusLED(device, 'ok')
+                            except:
+                                logging.error("Error setting status LED for device {} ".format(device))
+                        # send webhook info if reboot
+                        try:
+                            logging.info("Returncode for device " + device + " is " + str(rebootcode))
+                            tcpClient.send(str(rebootcode).encode('utf-8'))
+                        except:
+                            logging.error("Error while sending returncode for device {} to RMDserver".format(device))
                     except:
-                        logging.error("Error with authentification to RMDserver.")
+                        logging.error("Error with authentification to RMDserver.")                  
                     # close connection
                     logging.debug("Closing websocket connection: {}:{}".format(rmdItem.madmin_host, rmdItem.plugin_port))
-                    try:
+                    try:                
                         tcpClient.close()
                         time.sleep(5)
                     except:
