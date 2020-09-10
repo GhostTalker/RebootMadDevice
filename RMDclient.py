@@ -4,7 +4,7 @@
 #
 __author__ = "GhostTalker"
 __copyright__ = "Copyright 2020, The GhostTalker project"
-__version__ = "2.0.13"
+__version__ = "2.1.1"
 __status__ = "PROD"
 
 # generic/built-in and other libs
@@ -45,7 +45,7 @@ class rmdItem(object):
         return connectedDevices
 
     def connect_device(self, DEVICE_ORIGIN_TO_REBOOT):
-        cmd = "{}/adb connect {}".format(self.adb_path, device_list[DEVICE_ORIGIN_TO_REBOOT])
+        cmd = "{}/adb connect {}".format(self.adb_path, self.device_list[DEVICE_ORIGIN_TO_REBOOT])
         try:
             subprocess.check_output([cmd], shell=True)
         except subprocess.CalledProcessError:
@@ -54,10 +54,13 @@ class rmdItem(object):
         time.sleep(2)
 
     def reboot_device(self, DEVICE_ORIGIN_TO_REBOOT):
-        cmd = "{}/adb -s {}:{} reboot".format(self.adb_path, device_list[DEVICE_ORIGIN_TO_REBOOT], self.adb_port)
+        #cmd = "{}/adb -s {}:{} reboot".format(self.adb_path, self.device_list[DEVICE_ORIGIN_TO_REBOOT], self.adb_port)
         logging.info("rebooting Device {}. Please wait".format(DEVICE_ORIGIN_TO_REBOOT))
         try:
-            subprocess.check_output([cmd], shell=True)
+            #subprocess.check_output([cmd], shell=True)
+            ADBLOC="{}/adb".format(self.adb_path)
+            DEVICELOC="{}:{}".format(self.device_list[DEVICE_ORIGIN_TO_REBOOT], self.adb_port)
+            subprocess.Popen([ADBLOC, '-s', DEVICELOC, 'reboot'])
             return 100
         except subprocess.CalledProcessError:
             logging.warning("rebooting Device {} via ADB not possible. Using PowerSwitch...".format(DEVICE_ORIGIN_TO_REBOOT))
@@ -193,6 +196,7 @@ class rmdItem(object):
             dev_ip = active_device[1]
             device_list.append((dev_origin, dev_ip))
         device_list = dict(device_list)
+        self.device_list = device_list
         return device_list
 
     def _check_config(self):
@@ -306,7 +310,7 @@ def doRebootDevice(DEVICE_ORIGIN_TO_REBOOT, FORCE_OPTION):
         rebootcode += 50
         return rebootcode
     while counter < try_counter:
-        if device_list[DEVICE_ORIGIN_TO_REBOOT] in rmdItem.list_adb_connected_devices():
+        if rmdItem.device_list[DEVICE_ORIGIN_TO_REBOOT] in rmdItem.list_adb_connected_devices():
             logging.debug("Device {} already connected".format(DEVICE_ORIGIN_TO_REBOOT))
             rebootcode = rmdItem.reboot_device(DEVICE_ORIGIN_TO_REBOOT)
             return rebootcode

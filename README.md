@@ -13,6 +13,7 @@ This time is nessessary to give MAD enough time to collect the nessessary data f
 MAD Server:
 - Copy plugin from folder /MAD_plugin to <MAD plugin folder>/RebootMadDevice/ 
 - adjust plugin.ini to your requirements
+- install discord_webhook in MAD venv
 
 Raspberry or Server:
 - pip3 install -r requirements.txt
