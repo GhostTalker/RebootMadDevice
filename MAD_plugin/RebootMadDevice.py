@@ -37,12 +37,13 @@ class RebootMadDevice(mapadroid.utils.pluginBase.Plugin):
         self.templatepath = self._rootdir + "/template/"
 
         self._routes = [
-            ("/rmdstatus", self.rmdstatus_route),
+            ("/rmdstatus", self.rmdstatus),
+            ("/rmdstatuspage", self.rmdstatus_route),
             ("/rmdreadme", self.rmdreadme_route),
         ]
 
         self._hotlink = [
-            ("Plugin Status Page", "/rmdstatus", "RMD - Status Page"),
+            ("Plugin Status Page", "/rmdstatuspage", "RMD - Status Page"),
             ("Plugin Readme", "/rmdreadme", "RMD - Readme Page"),
         ]
 
@@ -122,6 +123,31 @@ class RebootMadDevice(mapadroid.utils.pluginBase.Plugin):
         past_min_from_now = int(diffToNow.seconds / 60)
         return int(past_min_from_now)
 
+    def calc_past_sec_from_now(self, timestamp):
+        """ calculate time between now and given timestamp """
+        now = datetime.datetime.now()
+        if timestamp == None or timestamp == "":
+            return None
+        elif datetime.datetime.fromtimestamp(timestamp) > now:
+            return 0
+        diffToNow = now - datetime.datetime.fromtimestamp(timestamp)
+        past_sec_from_now = int(diffToNow.seconds)
+        return int(past_sec_from_now)
+		
+    def makeTimestampReadable(self, timestamp):
+        if timestamp is None:
+            return "None"
+        else:
+            rts = datetime.datetime.fromtimestamp(timestamp)
+            return rts
+
+    def sec2time(self, sec):
+        if sec is None:
+            return "None"
+        # easy way to get mm:ss 
+        return "%02d:%02d" % divmod(sec, 60) 
+
+    	   
     def rmdStatusChecker(self):
 
         while True:
@@ -320,8 +346,29 @@ class RebootMadDevice(mapadroid.utils.pluginBase.Plugin):
         webhook.execute()
 
     @auth_required
+    def rmdstatus(self):
+        #device_status_list = list(self._device_status.items())
+        device_status_list = []
+        for device_origin, value in self._device_status.items():		
+            listitem = {}
+            listitem["device_origin"] = device_origin
+            listitem["injection_status"] = self._device_status[device_origin]["injection_status"]
+            listitem["worker_mode"] = self._device_status[device_origin]["worker_mode"]
+            listitem['worker_status'] = self._device_status[device_origin]["worker_status"]
+            listitem["last_mitm_data"] = self.sec2time(self.calc_past_sec_from_now(self._device_status[device_origin]["last_mitm_data"]))
+            listitem["last_proto_data"] = self.sec2time(self.calc_past_sec_from_now(self._device_status[device_origin]["last_proto_data"]))
+            listitem["reboot_nessessary"] = self._device_status[device_origin]["reboot_nessessary"]
+            listitem["reboot_force"] = self._device_status[device_origin]["reboot_force"]
+            listitem["last_reboot_time"] = self.sec2time(self.calc_past_sec_from_now(self._device_status[device_origin]["last_reboot_time"]))
+            listitem["last_client_connect"] = self.sec2time(self.calc_past_sec_from_now(self._device_status[device_origin]["last_client_connect"]))
+            device_status_list.append(listitem)
+        return jsonify(device_status_list)
+
+    @auth_required
     def rmdstatus_route(self):
-        return jsonify(self._device_status)
+        return render_template('rmdstatus.html', title="RMD Status",
+                               time=self._mad['args'].madmin_time,
+                               responsive=str(self._mad['args'].madmin_noresponsive).lower())
 
     @auth_required
     def rmdreadme_route(self):
