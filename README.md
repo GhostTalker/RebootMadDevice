@@ -40,6 +40,15 @@ and if you want to stop:
 RMDclientDaemon.sh stop
 ```
 
+#### Doing a manual reboot (e.g. for testing):
+ 
+A manual reboot can be done with the ManualReboot.py script:
+```
+   ManualReboot.py -o <DEVICE_ORIGIN_TO_REBOOT>
+or
+   ManualReboot.py --origin <DEVICE_ORIGIN_TO_REBOOT>
+```
+
 #### Features and supported hardware:
 ```
 - support for status LED with WS2812 led stripe
@@ -59,6 +68,7 @@ RMDclientDaemon.sh stop
 - Discord Webhook support
 - devided requirements in two parts (general and raspi)
 - ADB reboot optional
+- manual reboot script for testing
 ```
 ## License
 See the [LICENSE](https://github.com/GhostTalker/RebootMadDevice/blob/master/LICENSE.md) file for license rights and limitations (MIT).
