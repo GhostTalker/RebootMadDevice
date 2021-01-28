@@ -4,7 +4,7 @@
 #
 __author__ = "GhostTalker"
 __copyright__ = "Copyright 2020, The GhostTalker project"
-__version__ = "2.1.1"
+__version__ = "2.2.1"
 __status__ = "PROD"
 
 # generic/built-in and other libs
@@ -174,6 +174,14 @@ class rmdItem(object):
             except subprocess.CalledProcessError:
                 logging.error("failed send command to PowerBoard")
             return 600
+        elif powerswitch_dict['''switch_mode'''] == 'POE':
+            poescript = "poe_{}".format(dev_nr)
+            logging.info("fire command for POE port reset")
+            try:
+                subprocess.check_output([powerswitch_dict[poescript]], shell=True)
+            except subprocess.CalledProcessError:
+                logging.error("failed to fire command")
+            return 700
         else:
             logging.warning("no PowerSwitch configured. Do it manually!!!")
 
@@ -300,6 +308,7 @@ def doRebootDevice(DEVICE_ORIGIN_TO_REBOOT, FORCE_OPTION):
     # EXIT Code 400 = Reboot via i2c
     # EXIT Code 500 = Reboot via cmd
     # EXIT Code 600 = Reboot via PB
+    # EXIT Code 700 = Reboot via POE
     # EXIT Code +50 = force Option
     try_counter = 2
     counter = 0

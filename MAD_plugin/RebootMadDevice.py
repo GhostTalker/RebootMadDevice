@@ -295,6 +295,8 @@ class RebootMadDevice(mapadroid.utils.pluginBase.Plugin):
         # EXIT Code 300 = Reboot via GPIO
         # EXIT Code 400 = Reboot via i2c
         # EXIT Code 500 = Reboot via cmd
+        # EXIT Code 600 = Reboot via PB
+        # EXIT Code 700 = Reboot via POE	
         # EXIT Code +50 = force Option
         if returncode == '100':
             reboot_type = 'ADB'
@@ -328,6 +330,12 @@ class RebootMadDevice(mapadroid.utils.pluginBase.Plugin):
             force_option = 'no'
         elif returncode == '650':
             reboot_type = 'PB'
+            force_option = 'yes'
+        elif returncode == '700':
+            reboot_type = 'POE'
+            force_option = 'no'
+        elif returncode == '750':
+            reboot_type = 'POE'
             force_option = 'yes'
 
         # create embed object for webhook
