@@ -4,7 +4,7 @@
 #
 __author__ = "GhostTalker"
 __copyright__ = "Copyright 2020, The GhostTalker project"
-__version__ = "2.2.1"
+__version__ = "2.2.2"
 __status__ = "PROD"
 
 # generic/built-in and other libs
@@ -182,6 +182,23 @@ class rmdItem(object):
             except subprocess.CalledProcessError:
                 logging.error("failed to fire command")
             return 700
+        elif powerswitch_dict['''switch_mode'''] == 'SNMP':
+            switchport = "SNMP_{}".format(dev_nr)
+            snmpporton = 'snmpset -v 2c -c {} {} 1.3.6.1.2.1.105.1.1.1.3.1.{} i 1'.format(powerswitch_dict['snmp_community_string'], powerswitch_dict['snmp_switch_ip_adress'], powerswitch_dict[switchport])
+            snmpportoff = 'snmpset -v 2c -c {} {} 1.3.6.1.2.1.105.1.1.1.3.1.{} i 2'.format(powerswitch_dict['snmp_community_string'], powerswitch_dict['snmp_switch_ip_adress'], powerswitch_dict[switchport])
+            try:
+                subprocess.check_output(snmpportoff, shell=True)
+            except subprocess.CalledProcessError:
+                logging.error("failed to fire SNMP command")
+            logging.info("send SNMP command port OFF to SWITCH")
+            time.sleep(5)
+            try:
+                subprocess.check_output(snmpporton, shell=True)
+            except subprocess.CalledProcessError:
+                logging.error("failed to fire SNMP command")
+            logging.info("send SNMP command port ON to SWITCH")
+
+            return 800
         else:
             logging.warning("no PowerSwitch configured. Do it manually!!!")
 
@@ -309,6 +326,7 @@ def doRebootDevice(DEVICE_ORIGIN_TO_REBOOT, FORCE_OPTION):
     # EXIT Code 500 = Reboot via cmd
     # EXIT Code 600 = Reboot via PB
     # EXIT Code 700 = Reboot via POE
+    # EXIT Code 800 = Reboot via SNMP
     # EXIT Code +50 = force Option
     try_counter = 2
     counter = 0

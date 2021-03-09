@@ -43,7 +43,7 @@ DEVICE_1: <ORINGIN_DEVICE_1>;<IP_ADRESS_DEVICE_1>
 DEVICE_xx: <ORINGIN_DEVICE_xx>;<IP_ADRESS_DEVICE_xx>
 
 [PowerSwitchCommands]
-SWITCH_MODE: <GPIO or HTML or CMD or PB or POE>
+SWITCH_MODE: <GPIO or HTML or CMD or PB or POE or SNMP>
 #### for HTTP mode ####
 PowerON_Device_1: http://<IPADRESS_POWER_SWITCH>/<PowerONcommand>
 PowerOFF_Device_1: http://<IPADRESS_POWER_SWITCH>/<PowerOFFcommand>
@@ -69,3 +69,8 @@ PB_Device_4: 4
 #### for POE mode ####
 POE_Device_1: <path>/<poescript> <options>
 POE_Device_2: <path>/<poescript> <options>
+#### for SNMP mode ####
+SNMP_SWITCH_IP_ADRESS: 192.168.xxx.xxx
+SNMP_COMMUNITY_STRING: string
+SNMP_Device_1: 1
+SNMP_Device_2: 2

@@ -337,6 +337,12 @@ class RebootMadDevice(mapadroid.utils.pluginBase.Plugin):
         elif returncode == '750':
             reboot_type = 'POE'
             force_option = 'yes'
+        elif returncode == '800':
+            reboot_type = 'SNMP'
+            force_option = 'no'
+        elif returncode == '850':
+            reboot_type = 'SNMP'
+            force_option = 'yes'
 
         # create embed object for webhook
         webhook = DiscordWebhook(url=self._webhookurl)
