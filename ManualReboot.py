@@ -146,6 +146,30 @@ class ConfigItem(object):
             except subprocess.CalledProcessError:
                 print("failed send command to PowerBoard")
             return 600
+        elif powerswitch_dict['''switch_mode'''] == 'POE':
+            poescript = "poe_{}".format(dev_nr)
+            print("fire command for POE port reset")
+            try:
+                subprocess.check_output([powerswitch_dict[poescript]], shell=True)
+            except subprocess.CalledProcessError:
+                logging.error("failed to fire command")
+            return 700
+        elif powerswitch_dict['''switch_mode'''] == 'SNMP':
+            switchport = "snmp_{}".format(dev_nr)
+            snmpporton = 'snmpset -v 2c -c {} {} 1.3.6.1.2.1.105.1.1.1.3.1.{} i 1'.format(powerswitch_dict['snmp_community_string'], powerswitch_dict['snmp_switch_ip_adress'], powerswitch_dict[switchport])
+            snmpportoff = 'snmpset -v 2c -c {} {} 1.3.6.1.2.1.105.1.1.1.3.1.{} i 2'.format(powerswitch_dict['snmp_community_string'], powerswitch_dict['snmp_switch_ip_adress'], powerswitch_dict[switchport])
+            try:
+                subprocess.check_output(snmpportoff, shell=True)
+            except subprocess.CalledProcessError:
+                print("failed to fire SNMP command")
+            print("send SNMP command port OFF to SWITCH")
+            time.sleep(5)
+            try:
+                subprocess.check_output(snmpporton, shell=True)
+            except subprocess.CalledProcessError:
+                print("failed to fire SNMP command")
+            print("send SNMP command port ON to SWITCH")
+            return 800
         else:
             print("no PowerSwitch configured. Do it manually!!!")
 

@@ -183,7 +183,7 @@ class rmdItem(object):
                 logging.error("failed to fire command")
             return 700
         elif powerswitch_dict['''switch_mode'''] == 'SNMP':
-            switchport = "SNMP_{}".format(dev_nr)
+            switchport = "snmp_{}".format(dev_nr)
             snmpporton = 'snmpset -v 2c -c {} {} 1.3.6.1.2.1.105.1.1.1.3.1.{} i 1'.format(powerswitch_dict['snmp_community_string'], powerswitch_dict['snmp_switch_ip_adress'], powerswitch_dict[switchport])
             snmpportoff = 'snmpset -v 2c -c {} {} 1.3.6.1.2.1.105.1.1.1.3.1.{} i 2'.format(powerswitch_dict['snmp_community_string'], powerswitch_dict['snmp_switch_ip_adress'], powerswitch_dict[switchport])
             try:
