@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 __author__ = "GhostTalker"
 __copyright__ = "Copyright 2019, The GhostTalker project"
-__version__ = "2.1.1"
+__version__ = "2.2.3"
 __status__ = "Prod"
 
 # generic/built-in and other libs
@@ -212,6 +212,10 @@ def create_exitcode_and_exit(exitcode):
         print("EXIT Code 550 = Reboot via cmd")
     elif exitcode == 600:
         print("EXIT Code 650 = Reboot via PB")
+    elif exitcode == 700:
+        print("EXIT Code 650 = Reboot via POE")
+    elif exitcode == 800:
+        print("EXIT Code 650 = Reboot via SNMP")
     sys.exit(0)
 
 
