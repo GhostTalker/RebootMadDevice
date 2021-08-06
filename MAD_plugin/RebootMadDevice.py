@@ -12,7 +12,7 @@ import time
 import datetime
 import json
 import pickle
-from discord_webhook import DiscordWebhook, DiscordEmbed
+import requests
 
 
 class RebootMadDevice(mapadroid.utils.pluginBase.Plugin):
@@ -259,11 +259,14 @@ class RebootMadDevice(mapadroid.utils.pluginBase.Plugin):
                 try:
                     returncode = clientsocket.recv(8192).decode().replace("\r\n", "")
                     self._mad['logger'].info('rmdclient: got reboot returncode from client: ' + str(returncode))
+                except:
+                    self._mad['logger'].error('rmdserver: error receiving returncode from reboot')
+                try:
                     if int(returncode) > 0 and self._webhook_enable == 'yes':
                         self._mad['logger'].info('rmdserver: create webhook with returncode ' + str(returncode))
                         self.create_webhook(device_origin, returncode)
                 except:
-                    self._mad['logger'].error('rmdserver: error receiving returncode from reboot')
+                    self._mad['logger'].error('rmdserver: error sending webhook')
 
             except KeyError:
                 self._mad['logger'].error('rmdclient: unknown origin')
@@ -344,20 +347,45 @@ class RebootMadDevice(mapadroid.utils.pluginBase.Plugin):
             reboot_type = 'SNMP'
             force_option = 'yes'
 
-        # create embed object for webhook
-        webhook = DiscordWebhook(url=self._webhookurl)
-        wh_dec = "Reboot for Device {} executed".format(device_origin)
-        embed = DiscordEmbed(description=wh_dec, color=242424)
-        embed.set_author(name='RebootMadDevice', url='https://github.com/GhostTalker',
-                         icon_url='https://avatars2.githubusercontent.com/u/49254289')
-        embed.set_footer(text='')
-        embed.set_timestamp()
-        embed.add_embed_field(name='Device', value=device_origin)
-        embed.add_embed_field(name='Reboot', value=reboot_type)
-        embed.add_embed_field(name='Force', value=force_option)
-        # add embed object to webhook
-        webhook.add_embed(embed)
-        webhook.execute()
+        # create data for webhook
+        wh_dec = "Reboot for Device {} executed at {}".format(device_origin, datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+        data = {
+          "content": "",
+          "embeds": [
+            {
+              "color": 1183682,
+              "description": wh_dec,
+              "author": {
+                "name": "RebootMadDevice",
+                "url": "https://github.com/GhostTalker/RebootMadDevice",
+                "icon_url": "https://github.com/GhostTalker/icons/blob/main/Ghost/GhostTalker.jpg?raw=true"
+              },
+              "fields": [
+                {
+                  "name": "Device",
+                  "value": device_origin,
+                  "inline": "true"
+                },
+                {
+                  "name": "Reboot",
+                  "value": reboot_type,
+                  "inline": "true"
+                },
+                {
+                  "name": "Force",
+                  "value": force_option,
+                  "inline": "true"
+                }
+              ]
+            }
+          ]
+        }
+
+        # send webhook
+        self._mad['logger'].info('rmdserver: data to send with webhook:')
+        self._mad['logger'].info(data)
+        requests.post(self._webhookurl, json=data)	
+
 
     @auth_required
     def rmdstatus(self):

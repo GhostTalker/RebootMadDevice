@@ -213,9 +213,9 @@ def create_exitcode_and_exit(exitcode):
     elif exitcode == 600:
         print("EXIT Code 650 = Reboot via PB")
     elif exitcode == 700:
-        print("EXIT Code 650 = Reboot via POE")
+        print("EXIT Code 750 = Reboot via POE")
     elif exitcode == 800:
-        print("EXIT Code 650 = Reboot via SNMP")
+        print("EXIT Code 850 = Reboot via SNMP")
     sys.exit(0)
 
 

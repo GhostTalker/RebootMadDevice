@@ -13,7 +13,6 @@ This time is nessessary to give MAD enough time to collect the nessessary data f
 MAD Server:
 - Copy plugin from folder /MAD_plugin to <MAD plugin folder>/RebootMadDevice/ 
 - adjust plugin.ini to your requirements
-- install discord_webhook in MAD venv
 
 Raspberry or Server:
 - pip3 install -r requirements.txt
@@ -56,6 +55,7 @@ or
 - usable with PowerBoard (Link will follow)
 - usable with external commands
 - usable with web api like sonoff
+- usable with snmp
 - usable with gpio
 - relay mode NC or NO
 ```
@@ -65,7 +65,7 @@ or
 - server client architecture
 - timeout can now be configured in plugin.ini
 - next reboot of a device only after defined timeframe
-- Discord Webhook support
+- Discord Webhook support (without discord_webhook dependency)
 - devided requirements in two parts (general and raspi)
 - ADB reboot optional
 - manual reboot script for testing
