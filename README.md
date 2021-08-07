@@ -19,8 +19,6 @@ Raspberry or Server:
 - pip3 install -r requirements_rpi.txt (only for raspberry - add support for GPIO and LED)
 - copy config.ini.example to config.ini and adjust the values
 - adjust RMDclientDaemon.sh with install path
-- run chmod +x *.py
-- run chmod +x *.sh
 ```
 
 #### Using the daemon:
