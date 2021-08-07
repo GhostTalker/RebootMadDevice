@@ -1,11 +1,14 @@
 # RebootMadDevice V2 - MAD Plugin
-Reboot MAD devices via ADB or PowerSwitch when device is not responding
+Reboot MAD devices via ADB or PowerSwitch when device is not responding.
 
-only works with Python 3.6 and above
+Only works with Python 3.6 and above.
+
 Run the installation and this scripts not with sudo. Use root user!
+
 Running the daemon is only possible with root user!
 
 After restarting MAD it will take about 5 minutes before a client can connect. 
+
 This time is nessessary to give MAD enough time to collect the nessessary data for the plugin.
 
 #### Install:
