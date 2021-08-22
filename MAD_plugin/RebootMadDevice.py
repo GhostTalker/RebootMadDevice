@@ -77,6 +77,7 @@ class RebootMadDevice(mapadroid.utils.pluginBase.Plugin):
 
         # read config parameter
         self._reboothistory: dict = {}
+        self._webhookhistory: dict = {}
         self._clienthistory: dict = {}
         self._device_status: dict = {}
         self._firststart = True
@@ -168,8 +169,19 @@ class RebootMadDevice(mapadroid.utils.pluginBase.Plugin):
                     last_proto_data = device['lastProtoDateTime']
                     sleep_time = device['currentSleepTime']
                     data_plus_sleep = last_proto_data + sleep_time
-                    last_reboot_time = self._reboothistory.get(device_origin, None)
+                    try:
+                        last_reboot_time = self._reboothistory[device_origin]['last_reboot_time']
+                        reboot_count = self._reboothistory[device_origin]['reboot_count']
+                    except:
+                        last_reboot_time = None
+                        reboot_count = 0
+                        no_data = 0
+                        self._reboothistory[device_origin] = {'last_reboot_time': None, 'reboot_count': 0, 'no_data': 0 }
                     last_client_connect = self._clienthistory.get(device_origin, None)
+                    try:
+                        webhook_id = self._webhookhistory[device_origin]['webhook_id']
+                    except:
+                        self._webhookhistory[device_origin] = {'reboot_type': None,'force_option': None,'webhook_id': None}
 
                     self._mad['logger'].debug('rmdStatusChecker - device: ' + str(device_origin))
                     self._mad['logger'].debug('rmdStatusChecker - timestamp: ' + str(self.makeTimestamp()))
@@ -193,6 +205,11 @@ class RebootMadDevice(mapadroid.utils.pluginBase.Plugin):
                         else:
                             reboot_force = 'no'
                             reboot_nessessary = 'no'
+                            reboot_count = 0
+                            # clear webhook_id after fixed message
+                            if self._webhookhistory[device_origin]['webhook_id'] is not None:
+                                self.discord_message(device_origin, fixed=True)
+                                self._webhookhistory[device_origin] = {'reboot_type': None,'force_option': None,'webhook_id': None}
                     else:
                         if (injection_status == False and self.calc_past_min_from_now(last_mitm_data) > int(self._mitm_timeout)) or \
                                 self.calc_past_min_from_now(data_plus_sleep) > int(self._proto_timeout):
@@ -209,6 +226,11 @@ class RebootMadDevice(mapadroid.utils.pluginBase.Plugin):
                         else:
                             reboot_force = 'no'
                             reboot_nessessary = 'no'
+                            reboot_count = 0
+                            # clear webhook_id after fixed message
+                            if self._webhookhistory[device_origin]['webhook_id'] is not None:
+                                self.discord_message(device_origin, fixed=True)
+                                self._webhookhistory[device_origin] = {'reboot_type': None,'force_option': None,'webhook_id': None}
 
                     # save all values to device_status
                     self._device_status[device_origin] = {'injection_status': injection_status,
@@ -217,12 +239,21 @@ class RebootMadDevice(mapadroid.utils.pluginBase.Plugin):
                                                           'last_mitm_data': last_mitm_data,
                                                           'last_proto_data': last_proto_data,
                                                           'last_reboot_time': last_reboot_time,
+                                                          'reboot_count': reboot_count,
                                                           'reboot_nessessary': reboot_nessessary,
                                                           'reboot_force': reboot_force,
                                                           'last_client_connect': last_client_connect}
 
-            self._mad['logger'].debug('rmdStatusChecker: ' + str(self._device_status))
+                    # Update no_data time and existing Discord messages
+                    if self._reboothistory[device_origin]['no_data'] < self.calc_past_min_from_now(self._device_status[device_origin]['last_mitm_data']):
+                        self._reboothistory[device_origin]['no_data'] = self.calc_past_min_from_now(self._device_status[device_origin]['last_mitm_data'])
+                        if self._webhookhistory[device_origin]['webhook_id'] is not None:
+                            self._mad['logger'].info('rmdStatusChecker: update Discord message')
+                            self.discord_message(device_origin)
 
+                self._mad['logger'].debug('rmdStatusChecker: ' + str(self._device_status))
+
+            # Go sleep until next check
             self._firststart = False
             time.sleep(int(self._pluginconfig.get("rebootoptions", "sleeptime_between_check", fallback=5)) * 60)
 
@@ -248,7 +279,9 @@ class RebootMadDevice(mapadroid.utils.pluginBase.Plugin):
                     clientsocket.send(pickle.dumps(data))
                     if self._device_status[device_origin]['reboot_nessessary'] == 'yes':
                         self._device_status[device_origin]['last_reboot_time'] = self.makeTimestamp()
-                        self._reboothistory[device_origin] = self.makeTimestamp()
+                        self._reboothistory[device_origin]['last_reboot_time'] = self.makeTimestamp()
+                        self._reboothistory[device_origin]['reboot_count'] = self._device_status[device_origin]['reboot_count'] + 1
+                        self._reboothistory[device_origin]['no_data'] = self.calc_past_min_from_now(self._device_status[device_origin]['last_mitm_data'])
                         self._device_status[device_origin]['reboot_nessessary'] = 'rebooting'
                         self._mad['logger'].debug(
                             'rmdserver: data send to client ' + str(self._device_status[device_origin]))
@@ -264,9 +297,16 @@ class RebootMadDevice(mapadroid.utils.pluginBase.Plugin):
                 try:
                     if int(returncode) > 0 and self._webhook_enable == 'yes':
                         self._mad['logger'].info('rmdserver: create webhook with returncode ' + str(returncode))
-                        self.create_webhook(device_origin, returncode)
+                        try:
+                            self.create_webhook_data(device_origin, returncode)
+                        except:
+                            self._mad['logger'].error('rmdserver: error creating webhookdatahistory')
+                        try:
+                            self.discord_message(device_origin)
+                        except:
+                            self._mad['logger'].error('rmdserver: error sending webhook message')
                 except:
-                    self._mad['logger'].error('rmdserver: error sending webhook')
+                    self._mad['logger'].error('rmdserver: error with webhook')
 
             except KeyError:
                 self._mad['logger'].error('rmdclient: unknown origin')
@@ -291,7 +331,7 @@ class RebootMadDevice(mapadroid.utils.pluginBase.Plugin):
             _thread.start_new_thread(self.on_new_client, (c, addr))
         s.close()
 
-    def create_webhook(self, device_origin, returncode):
+    def create_webhook_data(self, device_origin, returncode):
         # decode returncode for information
         # EXIT Code 100 = Reboot via adb
         # EXIT Code 200 = Reboot via HTML
@@ -347,20 +387,33 @@ class RebootMadDevice(mapadroid.utils.pluginBase.Plugin):
             reboot_type = 'SNMP'
             force_option = 'yes'
 
+        self._webhookhistory[device_origin]['reboot_type'] = reboot_type
+        self._webhookhistory[device_origin]['force_option'] = force_option
+        self._mad['logger'].debug('rmdserver: webhookdata created in webhookhistory with:')
+        self._mad['logger'].debug(self._webhookhistory[device_origin])
+
+    def discord_message(self, device_origin, fixed=False):
         # create data for webhook
-        wh_dec = "Reboot for Device {} executed at {}".format(device_origin, datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+        self._mad['logger'].info('Start Webhook for device ' + device_origin )
+
+        now = datetime.datetime.utcnow()
         data = {
           "content": "",
+          "username": "Alert!",
+          "avatar_url": "https://github.com/GhostTalker/icons/blob/main/rmd/messagebox_critical_256.png?raw=true",
           "embeds": [
             {
-              "color": 1183682,
-              "description": wh_dec,
+              "title": "Device restarted!", 
+              "color": 16711680,
               "author": {
                 "name": "RebootMadDevice",
                 "url": "https://github.com/GhostTalker/RebootMadDevice",
                 "icon_url": "https://github.com/GhostTalker/icons/blob/main/Ghost/GhostTalker.jpg?raw=true"
               },
-              "fields": [
+               "thumbnail": {
+                   "url": "https://github.com/GhostTalker/icons/blob/main/rmd/reboot.jpg?raw=true"
+               },
+               "fields": [
                 {
                   "name": "Device",
                   "value": device_origin,
@@ -368,23 +421,51 @@ class RebootMadDevice(mapadroid.utils.pluginBase.Plugin):
                 },
                 {
                   "name": "Reboot",
-                  "value": reboot_type,
+                  "value": self._webhookhistory[device_origin]['reboot_type'],
                   "inline": "true"
                 },
                 {
                   "name": "Force",
-                  "value": force_option,
+                  "value": self._webhookhistory[device_origin]['force_option'],
                   "inline": "true"
                 }
               ]
             }
           ]
         }
+        # add timestamp
+        data["embeds"][0]["timestamp"] = str(now)
 
         # send webhook
-        self._mad['logger'].info('rmdserver: data to send with webhook:')
-        self._mad['logger'].info(data)
-        requests.post(self._webhookurl, json=data)	
+        self._mad['logger'].debug('rmdserver: data to send with webhook:')
+        self._mad['logger'].debug(data)
+        self._mad['logger'].debug(self._webhookhistory[device_origin]['webhook_id'])
+
+        if self._webhookhistory[device_origin]['webhook_id'] is None:
+            data["embeds"][0]["description"] = f"`{device_origin}` did not send useful data for more than `{self._reboothistory[device_origin]['no_data']}` minutes!\nReboot count: `{self._reboothistory[device_origin]['reboot_count']}`"
+            try:
+                result = requests.post(self._webhookurl, json = data, params={"wait": True})
+                result.raise_for_status()
+                answer = result.json()
+                self._mad['logger'].debug(answer)
+                self._webhookhistory[device_origin]["webhook_id"] = answer["id"]
+                self._mad['logger'].debug(self._webhookhistory[device_origin]["webhook_id"])
+            except requests.exceptions.RequestException as err:
+                self._mad['logger'].info(err)
+        else:
+            self._mad['logger'].debug('parameter fixed is: ' + str(fixed))
+            if not fixed:
+                data["embeds"][0]["description"] = f"`{device_origin}` did not send useful data for more than `{self._reboothistory[device_origin]['no_data']}` minutes!\nReboot count: `{self._reboothistory[device_origin]['reboot_count']}`\nFixed :x:"
+            else:
+                data["embeds"][0]["description"] = f"`{device_origin}` did not send useful data for more than `{self._reboothistory[device_origin]['no_data']}` minutes!\nReboot count: `{self._reboothistory[device_origin]['reboot_count']}`\nFixed :white_check_mark:"
+
+            try:
+                result = requests.patch(self._webhookurl + "/messages/" + self._webhookhistory[device_origin]["webhook_id"], json = data)
+                result.raise_for_status()
+            except requests.exceptions.RequestException as err:
+                self._mad['logger'].info(err)
+
+        return result.status_code
 
 
     @auth_required
@@ -402,6 +483,7 @@ class RebootMadDevice(mapadroid.utils.pluginBase.Plugin):
             listitem["reboot_nessessary"] = self._device_status[device_origin]["reboot_nessessary"]
             listitem["reboot_force"] = self._device_status[device_origin]["reboot_force"]
             listitem["last_reboot_time"] = self.sec2time(self.calc_past_sec_from_now(self._device_status[device_origin]["last_reboot_time"]))
+            listitem["reboot_count"] = self._device_status[device_origin]["reboot_count"]
             listitem["last_client_connect"] = self.sec2time(self.calc_past_sec_from_now(self._device_status[device_origin]["last_client_connect"]))
             device_status_list.append(listitem)
         return jsonify(device_status_list)
