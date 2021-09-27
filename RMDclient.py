@@ -18,6 +18,7 @@ import socket
 import pickle
 import logging
 import logging.handlers
+import datetime
 
 
 class rmdItem(object):
@@ -350,6 +351,78 @@ def doRebootDevice(DEVICE_ORIGIN_TO_REBOOT, FORCE_OPTION):
         rebootcode = rmdItem.reboot_device_via_power(DEVICE_ORIGIN_TO_REBOOT)
         return rebootcode
 
+def check_ipban():
+    banned = True
+    wh_send = False
+    while banned: 
+        logging.info("Checking PTC Login Servers...")
+        try:
+            result = requests.head('https://sso.pokemon.com/sso/login')
+            result.raise_for_status()
+        except requests.exceptions.RequestException as err:
+            logging.info(f"PTC Servers are not reachable! Error: {err}")
+            logging.info("Waiting 5 minutes and trying again")
+            time.sleep(300)
+            continue
+        if result.status_code != 200:
+            logging.info("IP is banned by PTC, waiting 5 minutes and trying again")
+            # Only send a message once per ban and only when a webhook is set
+            if not wh_send and rmdItem.bancheck_webhook:
+                unbantime = datetime.datetime.now() + datetime.timedelta(hours=3)
+                data = {
+                    "username": "Alert!",
+                    "avatar_url": "https://github.com/GhostTalker/icons/blob/main/rmd/messagebox_critical_256.png?raw=true",
+                    "content": f"<@{rmdItem.banping}> IP address is currently banned by PTC! \nApproximate remaining time until unban: <t:{int(unbantime.timestamp())}:R> ({unbantime.strftime('%H:%M')})",
+                }
+                try:
+                    result = requests.post(rmdItem.bancheck_webhook, json=data)
+                    result.raise_for_status()
+                except requests.exceptions.RequestException as err:
+                    logging.info(err)
+            wh_send = True
+            time.sleep(300)
+            continue
+        else:
+            logging.info("IP is not banned by PTC, continuing...")
+            banned = False
+            wh_send = False
+    
+    banned = True
+    wh_send = False
+    while banned: 
+        logging.info("Checking MAD Backend Login Servers...")
+        try:
+            result = requests.head('https://auth.maddev.eu')
+            result.raise_for_status()
+        except requests.exceptions.RequestException as err:
+            logging.info(f"MAD Backend Servers are not reachable! Error: {err}")
+            logging.info("Waiting 5 minutes and trying again")
+            time.sleep(300)
+            continue
+        if result.status_code != 200:
+            logging.info("IP is banned by MAD, waiting 5 minutes and trying again")
+            # Only send a message once per ban and only when a webhook is set
+            if not wh_send and rmdItem.bancheck_webhook:
+                unbantime = datetime.datetime.now() + datetime.timedelta(hours=3)
+                data = {
+                    "username": "Alert!",
+                    "avatar_url": "https://github.com/GhostTalker/icons/blob/main/rmd/messagebox_critical_256.png?raw=true",
+                    "content": f"<@{rmdItem.banping}> IP address is currently banned by MAD! \nApproximate remaining time until unban: <t:{int(unbantime.timestamp())}:R> ({unbantime.strftime('%H:%M')})",
+                }
+                try:
+                    result = requests.post(rmdItem.bancheck_webhook, json=data)
+                    result.raise_for_status()
+                except requests.exceptions.RequestException as err:
+                    logging.info(err)
+            wh_send = True
+            time.sleep(300)
+            continue
+        else:
+            logging.info("IP is not banned by MAD, continuing...")
+            banned = False
+            wh_send = False
+
+
 if __name__ == '__main__':
     rmdItem = rmdItem()
 
@@ -382,6 +455,8 @@ if __name__ == '__main__':
 
     try:
         while True:
+            if rmdItem.bancheck_enable == "True":
+                check_ipban()
             for device in rmdItem.create_device_list():
                 try:        
                     # create connection to server
