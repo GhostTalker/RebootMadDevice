@@ -74,3 +74,8 @@ PB_Device_4: 4
 #### for POE mode ####
 POE_Device_1: <path>/<poescript> <options>
 POE_Device_2: <path>/<poescript> <options>
+#### for SNMP mode ####
+SNMP_SWITCH_IP_ADRESS: 192.168.xxx.xxx
+SNMP_COMMUNITY_STRING: string
+SNMP_Device_1: 1
+SNMP_Device_2: 2 
