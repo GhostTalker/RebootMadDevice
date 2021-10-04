@@ -168,7 +168,7 @@ class RebootMadDevice(mapadroid.utils.pluginBase.Plugin):
                     last_mitm_data = mitm_stats['origin_status'][device_origin]['latest_data']
                     last_proto_data = device['lastProtoDateTime']
                     sleep_time = device['currentSleepTime']
-                    data_plus_sleep = last_proto_data + sleep_time
+                    data_plus_sleep = last_proto_data or 0 + sleep_time
                     try:
                         last_reboot_time = self._reboothistory[device_origin]['last_reboot_time']
                         reboot_count = self._reboothistory[device_origin]['reboot_count']
