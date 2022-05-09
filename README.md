@@ -1,4 +1,4 @@
-# RebootMadDevice V2 - MAD Plugin
+# RebootMadDevice V3 - DB version
 Reboot MAD devices via ADB or PowerSwitch when device is not responding.
 
 Only works with Python 3.6 and above.
@@ -13,10 +13,6 @@ This time is nessessary to give MAD enough time to collect the nessessary data f
 
 #### Install:
 ```
-MAD Server:
-- Copy plugin from folder /MAD_plugin to <MAD plugin folder>/RebootMadDevice/ 
-- adjust plugin.ini to your requirements
-
 Raspberry or Server:
 - pip3 install -r requirements.txt
 - pip3 install -r requirements_rpi.txt (only for raspberry - add support for GPIO and LED)
@@ -62,9 +58,9 @@ or
 ```
 #### Whats new:
 ```
-- MAD plugin 
-- server client architecture
-- timeout can now be configured in plugin.ini
+- based on MAD database 
+- client architecture
+- timeout can be configured in config.ini
 - next reboot of a device only after defined timeframe
 - Discord Webhook support (without discord_webhook dependency)
 - devided requirements in two parts (general and raspi)
