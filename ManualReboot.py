@@ -1,12 +1,17 @@
 #!/usr/bin/env python3
+#
+# RebootMadDevices - ManualReboot
+# Script to restart ATV devices which are not responsable
+#
 __author__ = "GhostTalker"
-__copyright__ = "Copyright 2019, The GhostTalker project"
-__version__ = "2.2.3"
-__status__ = "Prod"
+__copyright__ = "Copyright 2022, The GhostTalker project"
+__version__ = "3.0.2"
+__status__ = "TEST"
 
 # generic/built-in and other libs
 import configparser
 import os
+import configparser
 import subprocess
 import sys
 import getopt
@@ -39,101 +44,176 @@ def main():
     return DEVICE_ORIGIN_TO_REBOOT
 
 
-class ConfigItem(object):
-    adb_path = None
-    adb_port = None
-    mitm_receiver_ip = None
-    mitm_receiver_port = None
-    poweroff = None
-    poweron = None
-    devices = {}
-    powerswitchcommands = {}
+class rmdItem(object):
+    _config = configparser.ConfigParser()
+    _rootdir = os.path.dirname(os.path.abspath('config.ini'))
+    _config.read(_rootdir + "/config.ini")
+    _gpio_usage = _config.get("GPIO", "GPIO_USAGE")
+
 
     def __init__(self):
-        self._set_data()
+        self.initRMDdata()
+
+    def initRMDdata(self):
+        # init dict 
+        self._rmd_data = {}
+    
+        # read json file
+        print("Read data from devices.json file.")
+        with open('devices.json') as json_file:
+           _jsondata = json.load(json_file) 
+    
+        # init rmd data in dict
+        print("Init rmd data dictonary.")
+        for device in _jsondata:
+            self._rmd_data[device]= {'ip_address': _jsondata[device]["IP_ADDRESS"],
+                                'switch_mode': _jsondata[device]["SWITCH_MODE"],
+                                'switch_option': _jsondata[device]["SWITCH_OPTION"],
+                                'switch_value': _jsondata[device]["SWITCH_VALUE"],
+                                'led_position': _jsondata[device]["LED_POSITION"],
+                                'worker_status': "",
+                                'idle_status': "",
+                                'last_proto_data': "",
+                                'current_sleep_time': "",
+                                'last_reboot_time': "",
+                                'reboot_count': "0",
+                                'reboot_nessessary': False,
+                                'reboot_force': False,
+                                'reboot_type': None,
+                                'reboot_forced': False,
+                                'webhook_id': None}
+    	
 
     def reboot_device_via_power(self, DEVICE_ORIGIN_TO_REBOOT):
-        dev_nr = ""
-        powerswitch_dict = dict(self.powerswitchcommands.items())
+        ## read powerSwitch config
+        powerSwitchMode = self._rmd_data[DEVICE_ORIGIN_TO_REBOOT]['switch_mode']
+        powerSwitchOption = self._rmd_data[DEVICE_ORIGIN_TO_REBOOT]['switch_option']
+        powerSwitchValue = self._rmd_data[DEVICE_ORIGIN_TO_REBOOT]['switch_value']
 
-        for key, value in self.devices.items():
-            dev_origin = value.split(';', 1)
-            if dev_origin[0] == DEVICE_ORIGIN_TO_REBOOT:
-                dev_nr = key
-                break
-
-        if powerswitch_dict['''switch_mode'''] == 'HTML':
-            poweron = "poweron_{}".format(dev_nr)
-            poweroff = "poweroff_{}".format(dev_nr)
+        ## HTML 
+        if powerSwitchMode == 'HTML':
+            print("PowerSwitch with HTML starting.")
+            poweron = powerSwitchValue.split(";")[0]
+            poweroff = powerSwitchValue.split(";")[1]
             print("turn HTTP PowerSwitch off")
-            requests.get(powerswitch_dict[poweroff])
+            requests.get(poweroff)
             time.sleep(5)
             print("turn HTTP PowerSwitch on")
-            requests.get(powerswitch_dict[poweron])
-            return 200
-        elif powerswitch_dict['''switch_mode'''] == 'GPIO':
-            gpioname = "gpio_{}".format(dev_nr)
-            gpionr = int(powerswitch_dict[gpioname])
+            requests.get(poweron)
+            print("PowerSwitch with HTML done.")
+            return        
+
+        ## GPIO 
+        elif powerSwitchMode == 'GPIO':
+            print("PowerSwitch with GPIO starting.")
+            relay_mode = powerSwitchOption.split(";")[0]
+            cleanup_mode = powerSwitchOption.split(";")[1]
+            gpionr = int(powerSwitchValue)
             print("turn GPIO PowerSwitch off")
             GPIO.setwarnings(False)
             GPIO.setmode(GPIO.BCM)
+
             try:
-                powerswitch_dict['''cleanup_mode''']
-            except KeyError:
-                powerswitch_dict.update({'''cleanup_mode''' : 'no'})
-
-            if powerswitch_dict['''cleanup_mode'''] == 'yes':
+               eval(cleanup_mode)
+            except:
+               cleanup_mode = "False"
+            
+            if eval(cleanup_mode):
                 GPIO.cleanup()
-                print("CleanupParameter: " + powerswitch_dict['''cleanup_mode'''])
-                print("Cleanup done!")
+                print("GPIO cleanup done!")
 
-            if powerswitch_dict['''relay_mode'''] == 'NO':
-                #GPIO.setup(gpionr, GPIO.OUT, initial=GPIO.HIGH)
+            if relay_mode == 'NO':
+                print("Relay_mode: " + relay_mode)
+                # GPIO.setup(gpionr, GPIO.OUT, initial=GPIO.HIGH)
+                print("setting GPIO setup to: GPIO.OUT")
                 GPIO.setup(gpionr, GPIO.OUT)
+                print("setting GPIO output to: GPIO.HIGH")
                 GPIO.output(gpionr, GPIO.HIGH)
-            elif powerswitch_dict['''relay_mode'''] == 'NC':
-                #GPIO.setup(gpionr, GPIO.OUT, initial=GPIO.LOW)
+            elif relay_mode == 'NC':
+                print("Relay_mode: " + relay_mode)
+                # GPIO.setup(gpionr, GPIO.OUT, initial=GPIO.LOW)
+                print("setting GPIO setup to: GPIO.OUT")
                 GPIO.setup(gpionr, GPIO.OUT)
+                print("setting GPIO output to: GPIO.LOW")
                 GPIO.output(gpionr, GPIO.LOW)
             else:
                 print("wrong relay_mode in config")
+            print("sleeping 10s")
             time.sleep(10)
             print("turn GPIO PowerSwitch on")
-            if powerswitch_dict['''relay_mode'''] == 'NO':
-                #GPIO.output(gpionr, GPIO.LOW)
+            if relay_mode == 'NO':
+                print("Relay_mode: " + relay_mode)
+                # GPIO.output(gpionr, GPIO.LOW)
+                print("setting GPIO setup to: GPIO.OUT")
                 GPIO.setup(gpionr, GPIO.OUT)
+                print("setting GPIO output to: GPIO.LOW")
                 GPIO.output(gpionr, GPIO.LOW)
-            elif powerswitch_dict['''relay_mode'''] == 'NC':
-                #GPIO.output(gpionr, GPIO.HIGH)
+            elif relay_mode == 'NC':
+                print("Relay_mode: " + relay_mode)
+                # GPIO.output(gpionr, GPIO.HIGH)
+                print("setting GPIO setup to: GPIO.OUT")
                 GPIO.setup(gpionr, GPIO.OUT)
+                print("setting GPIO output to: GPIO.HIGH")
                 GPIO.output(gpionr, GPIO.HIGH)
             else:
                 print("wrong relay_mode in config")
 
-            if powerswitch_dict['''cleanup_mode'''] == 'yes':
+            if eval(cleanup_mode):
                 GPIO.cleanup()
-                print("CleanupParameter: " + powerswitch_dict['''cleanup_mode'''])
-                print("Cleanup done!")
-            return 300
-        elif powerswitch_dict['''switch_mode'''] == 'CMD':
-            poweron = "poweron_{}".format(dev_nr)
-            poweroff = "poweroff_{}".format(dev_nr)
-            print("fire command for PowerSwitch off")
+                print("GPIO cleanup done!")
+            print("PowerSwitch with GPIO done.")
+            return
+
+        ## CMD 
+        elif powerSwitchMode == 'CMD':
+            print("PowerSwitch with CMD starting.")
             try:
-                subprocess.check_output([powerswitch_dict[poweroff]], shell=True)
+                subprocess.check_output(powerSwitchValue, shell=True)
             except subprocess.CalledProcessError:
                 print("failed to fire command")
             time.sleep(5)
-            print("fire command for PowerSwitch on")
+            print("PowerSwitch with CMD done.")
+            self._rmd_data[DEVICE_ORIGIN_TO_REBOOT]['reboot_forced'] = True
+            self._rmd_data[DEVICE_ORIGIN_TO_REBOOT]['reboot_type'] = "CMD"
+            return
+
+        ## SCRIPT 
+        elif powerSwitchMode == 'SCRIPT':
+            print("PowerSwitch with SCRIPT starting.")
+            poweron = powerSwitchValue.split(";")[0]
+            poweroff = powerSwitchValue.split(";")[1]
+            print("execute script for PowerSwitch off")
             try:
-                subprocess.check_output([powerswitch_dict[poweron]], shell=True)
+                subprocess.check_output(poweroff, shell=True)
             except subprocess.CalledProcessError:
-                print("failed to fire command")
-            return 500
-        elif powerswitch_dict['''switch_mode'''] == 'PB':
-            pbport = "pb_{}".format(dev_nr)
-            pbporton = '/bin/echo -e "on {}" > {}'.format(powerswitch_dict[pbport],powerswitch_dict['pb_interface'])
-            pbportoff = '/bin/echo -e "off {}" > {}'.format(powerswitch_dict[pbport],powerswitch_dict['pb_interface'])
+                print("failed to start script")
+            time.sleep(5)
+            print("execute script for PowerSwitch on")
+            try:
+                subprocess.check_output(poweron, shell=True)
+            except subprocess.CalledProcessError:
+                print("failed to start script")
+            print("PowerSwitch with SCRIPT done.")
+            return
+
+        ## POE 
+        elif powerSwitchMode == 'POE':
+            print("PowerSwitch with POE starting.")
+            try:
+                subprocess.check_output(powerSwitchValue, shell=True)
+            except subprocess.CalledProcessError:
+                print("failed to fire poe port reset")
+            time.sleep(5)
+            print("PowerSwitch with POE done.")
+            return
+
+        ## PB
+        elif powerSwitchMode == 'PB':
+            print("PowerSwitch with PB starting.")
+            pbport = powerSwitchValue
+            pb_interface = powerSwitchOption
+            pbporton = '/bin/echo -e "on {}" > {}'.format(pbport, pb_interface)
+            pbportoff = '/bin/echo -e "off {}" > {}'.format(pbport, pb_interface)
             print("send command to PowerBoard for PowerSwitch off")
             try:
                 subprocess.check_output(pbportoff, shell=True)
@@ -145,88 +225,45 @@ class ConfigItem(object):
                 subprocess.check_output(pbporton, shell=True)
             except subprocess.CalledProcessError:
                 print("failed send command to PowerBoard")
-            return 600
-        elif powerswitch_dict['''switch_mode'''] == 'POE':
-            poescript = "poe_{}".format(dev_nr)
-            print("fire command for POE port reset")
-            try:
-                subprocess.check_output([powerswitch_dict[poescript]], shell=True)
-            except subprocess.CalledProcessError:
-                logging.error("failed to fire command")
-            return 700
-        elif powerswitch_dict['''switch_mode'''] == 'SNMP':
-            switchport = "snmp_{}".format(dev_nr)
-            snmpporton = 'snmpset -v 2c -c {} {} 1.3.6.1.2.1.105.1.1.1.3.1.{} i 1'.format(powerswitch_dict['snmp_community_string'], powerswitch_dict['snmp_switch_ip_adress'], powerswitch_dict[switchport])
-            snmpportoff = 'snmpset -v 2c -c {} {} 1.3.6.1.2.1.105.1.1.1.3.1.{} i 2'.format(powerswitch_dict['snmp_community_string'], powerswitch_dict['snmp_switch_ip_adress'], powerswitch_dict[switchport])
+            print("PowerSwitch with PB done.")
+            return
+			
+        ## SNMP
+        elif powerSwitchMode == 'SNMP':
+            print("PowerSwitch with SNMP starting.")
+            switchport = powerSwitchValue
+            snmp_switch_ip_adress = powerSwitchOption.split(";")[0]
+            snmp_community_string = powerSwitchOption.split(";")[1]
+            snmpporton = 'snmpset -v 2c -c {} {} 1.3.6.1.2.1.105.1.1.1.3.1.{} i 1'.format(snmp_community_string, snmp_switch_ip_adress, switchport)
+            snmpportoff = 'snmpset -v 2c -c {} {} 1.3.6.1.2.1.105.1.1.1.3.1.{} i 2'.format(snmp_community_string, snmp_switch_ip_adress, switchport)
             try:
                 subprocess.check_output(snmpportoff, shell=True)
+                print("send SNMP command port OFF to SWITCH")
             except subprocess.CalledProcessError:
                 print("failed to fire SNMP command")
-            print("send SNMP command port OFF to SWITCH")
             time.sleep(5)
             try:
                 subprocess.check_output(snmpporton, shell=True)
+                print("send SNMP command port ON to SWITCH")
             except subprocess.CalledProcessError:
                 print("failed to fire SNMP command")
-            print("send SNMP command port ON to SWITCH")
-            return 800
+            print("PowerSwitch with SNMP done.")
+            return
         else:
-            print("no PowerSwitch configured. Do it manually!!!")
-
-    def _set_data(self):
-        config = self._read_config()
-        for section in config.sections():
-            for option in config.options(section):
-                if section == 'Devices':
-                    self.devices[option] = config.get(section, option)
-                elif section == 'PowerSwitchCommands':
-                    self.powerswitchcommands[option] = config.get(section, option)
-                else:
-                    self.__setattr__(option, config.get(section, option))
-
-    def _check_config(self):
-        conf_file = os.path.join(os.path.dirname(__file__), "config.ini")
-        if not os.path.isfile(conf_file):
-            raise FileExistsError('"{}" does not exist'.format(conf_file))
-        self.conf_file = conf_file
-
-    def _read_config(self):
-        try:
-            self._check_config()
-        except FileExistsError as e:
-            raise e
-        config = configparser.ConfigParser()
-        config.read(self.conf_file)
-
-        return config
-
-
-def create_exitcode_and_exit(exitcode):
-    if exitcode == 200:
-        print("EXIT Code 250 = Reboot via HTML")
-    elif exitcode == 300:
-        print("EXIT Code 350 = Reboot via GPIO")
-    elif exitcode == 400:
-        print("EXIT Code 450 = Reboot via i2c")
-    elif exitcode == 500:
-        print("EXIT Code 550 = Reboot via cmd")
-    elif exitcode == 600:
-        print("EXIT Code 650 = Reboot via PB")
-    elif exitcode == 700:
-        print("EXIT Code 750 = Reboot via POE")
-    elif exitcode == 800:
-        print("EXIT Code 850 = Reboot via SNMP")
-    sys.exit(0)
+            logging.warning("no PowerSwitch configured. Do it manually!!!")
 
 
 if __name__ == '__main__':
-    conf_item = ConfigItem()
-    if conf_item.powerswitchcommands['switch_mode'] == 'GPIO':
+    ## init rmdItem
+    rmdItem = rmdItem()
+		
+    # GPIO import libs
+    if eval(rmdItem._gpio_usage):
+        print("import GPIO libs")
         import RPi.GPIO as GPIO
 
-    DEVICE_ORIGIN_TO_REBOOT = main() 
     print('Origin to reboot is', DEVICE_ORIGIN_TO_REBOOT)
+    rmdItem.doRebootDevice(DEVICE_ORIGIN_TO_REBOOT)
+    
 
-    exitcode = conf_item.reboot_device_via_power(DEVICE_ORIGIN_TO_REBOOT)
-    create_exitcode_and_exit(exitcode)
 

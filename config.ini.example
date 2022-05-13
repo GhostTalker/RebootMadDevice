@@ -4,22 +4,31 @@
 #                                                    #
 ######################################################
 
-[Enviroment]
+[ENVIROMENT]
 ADB_PATH: /usr/bin
 ADB_PORT: 5555
 
-[Logging]
-LOG_MODE: <console/file/off>
-LOG_FILENAME: RMDclient.log
-LOG_LEVEL: <INFO/DEBUG>
+[LOGGING]
+LOG_MODE: console
+LOG_LEVEL: INFO
 
-[MAD server]
-MADMIN_HOST: <Hostname or IP>
-PLUGIN_PORT: <50000>
-PLUGIN_TOKEN: 'changeit'
+[MAD_DATABASE]
+DB_HOST: <IP Adresse>
+DB_PORT: 3306
+DB_NAME: <mad database>
+DB_USER: <db user>
+DB_PASS: <db password>
 
-[Status LED]
-LED_ENABLE: True
+[REBOOTOPTIONS]
+TRY_ADB_FIRST = <True/False>
+#values are in minutes
+SLEEPTIME_BETWEEN_CHECK = 2
+PROTO_TIMEOUT = 10
+FORCE_REBOOT_TIMEOUT =  20
+REBOOT_WAITTIME = 15
+
+[STATUS_LED]
+LED_ENABLE: <True/False>
 # internal or external LED
 LED_TYPE: internal/external
 # Number of LED pixels.
@@ -37,45 +46,15 @@ LED_INVERT: False
 # WS for external LED
 LED_WS_EXTERNAL: ws://<IP>:<Port>
 
-[IP ban check]
-BANCHECK_ENABLE: True
-BANCHECK_WEBHOOK: webhookurl
-banPing: discordID
+[GPIO]
+GPIO_USAGE: <True/False>
 
-[Devices]
-DEVICE_0: <ORINGIN_DEVICE_0>;<IP_ADRESS_DEVICE_0>
-DEVICE_1: <ORINGIN_DEVICE_1>;<IP_ADRESS_DEVICE_1>
-DEVICE_xx: <ORINGIN_DEVICE_xx>;<IP_ADRESS_DEVICE_xx>
+[IP_BAN_CHECK]
+BANCHECK_ENABLE: <True/False>
+BANCHECK_WEBHOOK: https://discordapp.com/api/webhooks/xxxxxxxxxxx
+BANPING: <Discord User ID>
 
-[PowerSwitchCommands]
-SWITCH_MODE: <GPIO or HTML or CMD or PB or POE>
-#### for HTTP mode ####
-PowerON_Device_1: http://<IPADRESS_POWER_SWITCH>/<PowerONcommand>
-PowerOFF_Device_1: http://<IPADRESS_POWER_SWITCH>/<PowerOFFcommand>
-PowerON_Device_2: http://<IPADRESS_POWER_SWITCH>/<PowerONcommand>
-PowerOFF_Device_2: http://<IPADRESS_POWER_SWITCH>/<PowerOFFcommand>
-#### for GPIO mode ####
-RELAY_MODE: <NO or NC>
-#the cleanup_mode is optional. only use if you have problems with the relayswitch
-CLEANUP_MODE: <yes or no>
-GPIO_Device_1: 17
-GPIO_Device_2: 27
-#### for CMD mode ####
-PowerON_Device_1: <path>/<command> <options>
-PowerOFF_Device_1: <path>/<command> <options>
-PowerON_Device_2: <path>/<command> <options>
-PowerOFF_Device_2: <path>/<command> <options>
-#### for PB mode ####
-PB_INTERFACE: /dev/ttyACM0
-PB_Device_1: 1
-PB_Device_2: 2
-PB_Device_3: 3
-PB_Device_4: 4
-#### for POE mode ####
-POE_Device_1: <path>/<poescript> <options>
-POE_Device_2: <path>/<poescript> <options>
-#### for SNMP mode ####
-SNMP_SWITCH_IP_ADRESS: 192.168.xxx.xxx
-SNMP_COMMUNITY_STRING: string
-SNMP_Device_1: 1
-SNMP_Device_2: 2 
+[DISCORD]
+WEBHOOK: <True/False>
+WEBHOOK_URL: https://discordapp.com/api/webhooks/xxxxxxxxxxx
+

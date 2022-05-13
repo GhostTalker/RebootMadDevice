@@ -1,0 +1,11 @@
+{
+  "ATV01": { "IP_ADDRESS": "192.168.0.1", "SWITCH_MODE": "HTML",   "SWITCH_OPTION": "",                              "SWITCH_VALUE": "https://on_url;https://off_url",                       "LED_POSITION": "1" },
+  "ATV02": { "IP_ADDRESS": "192.168.0.2", "SWITCH_MODE": "GPIO",   "SWITCH_OPTION": "NC;False",                      "SWITCH_VALUE": "15",                                                   "LED_POSITION": "2" },
+  "ATV03": { "IP_ADDRESS": "192.168.0.3", "SWITCH_MODE": "GPIO",   "SWITCH_OPTION": "NO;False",                      "SWITCH_VALUE": "16",                                                   "LED_POSITION": "3" },
+  "ATV04": { "IP_ADDRESS": "192.168.0.4", "SWITCH_MODE": "GPIO",   "SWITCH_OPTION": "NC;True",                       "SWITCH_VALUE": "17",                                                   "LED_POSITION": "4" },
+  "ATV05": { "IP_ADDRESS": "192.168.0.5", "SWITCH_MODE": "CMD",    "SWITCH_OPTION": "",                              "SWITCH_VALUE": "/home/script_to_powercycle.sh",                        "LED_POSITION": "5" },
+  "ATV06": { "IP_ADDRESS": "192.168.0.6", "SWITCH_MODE": "SCRIPT", "SWITCH_OPTION": "",                              "SWITCH_VALUE": "/home/poweron.sh;/home/poweroff.sh",                   "LED_POSITION": "6" },
+  "ATV07": { "IP_ADDRESS": "192.168.0.7", "SWITCH_MODE": "POE",    "SWITCH_OPTION": "",                              "SWITCH_VALUE": "ssh root@switch 'poe port down; sleep 5; poe port up", "LED_POSITION": "7" },
+  "ATV08": { "IP_ADDRESS": "192.168.0.8", "SWITCH_MODE": "PB",     "SWITCH_OPTION": "/dev/ttyACM0",                  "SWITCH_VALUE": "1",                                                    "LED_POSITION": "8" },
+  "ATV09": { "IP_ADDRESS": "192.168.0.9", "SWITCH_MODE": "SNMP",   "SWITCH_OPTION": "192.168.0.250;communitystring", "SWITCH_VALUE": "20",                                                   "LED_POSITION": "9" }
+}

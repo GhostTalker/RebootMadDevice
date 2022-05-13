@@ -17,23 +17,23 @@ Raspberry or Server:
 - pip3 install -r requirements.txt
 - pip3 install -r requirements_rpi.txt (only for raspberry - add support for GPIO and LED)
 - copy config.ini.example to config.ini and adjust the values
-- adjust RMDclientDaemon.sh with install path
+- adjust RMDdaemon.sh with install path
 ```
 
 #### Using the daemon:
  
 The deamon has to be started with:
 ```
-RMDclientDaemon.sh start
+RMDdaemon.sh start
 ```
 if you want to check that is running:
 ```
-RMDclientDaemon.sh status
+RMDdaemon.sh status
 ```
 
 and if you want to stop:
 ```
-RMDclientDaemon.sh stop
+RMDdaemon.sh stop
 ```
 
 #### Doing a manual reboot (e.g. for testing):
