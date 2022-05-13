@@ -1,5 +1,5 @@
 # RebootMadDevice V3 - DB version
-Reboot MAD devices via ADB or PowerSwitch when device is not responding.
+Reboot ATV devices via ADB or PowerSwitch when device is not responding to MAD or RDM.
 
 Only works with Python 3.6 and above.
 
@@ -7,9 +7,7 @@ Run the installation and this scripts not with sudo. Use root user!
 
 Running the daemon is only possible with root user!
 
-After restarting MAD it will take about 5 minutes before a client can connect. 
-
-This time is nessessary to give MAD enough time to collect the nessessary data for the plugin.
+After restarting MAD it will take about 5 minutes before data is usable. 
 
 #### Install:
 ```
@@ -47,6 +45,7 @@ or
 
 #### Features and supported hardware:
 ```
+- RDM and MAD support
 - support for status LED with WS2812 led stripe
 - support for external status LED via websocket (https://github.com/FabLab-Luenen/McLighting)
 - usable with PowerBoard (Link will follow)
@@ -58,7 +57,8 @@ or
 ```
 #### Whats new:
 ```
-- based on MAD database 
+- RDM support
+- based on MAD/RDM database 
 - client architecture
 - timeout can be configured in config.ini
 - next reboot of a device only after defined timeframe

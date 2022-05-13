@@ -5,7 +5,7 @@
 #
 __author__ = "GhostTalker"
 __copyright__ = "Copyright 2022, The GhostTalker project"
-__version__ = "3.0.2"
+__version__ = "3.0.4"
 __status__ = "TEST"
 
 
@@ -30,11 +30,12 @@ class rmdItem(object):
     _config = configparser.ConfigParser()
     _rootdir = os.path.dirname(os.path.abspath('config.ini'))
     _config.read(_rootdir + "/config.ini")
-    _mysqlhost = _config.get("MAD_DATABASE", "DB_HOST", fallback='127.0.0.1')
-    _mysqlport = _config.get("MAD_DATABASE", "DB_PORT", fallback='3306')
-    _mysqldb = _config.get("MAD_DATABASE", "DB_NAME")
-    _mysqluser = _config.get("MAD_DATABASE", "DB_USER")
-    _mysqlpass = _config.get("MAD_DATABASE", "DB_PASS")
+    _mysqlhost = _config.get("DATABASE", "DB_HOST", fallback='127.0.0.1')
+    _mysqlport = _config.get("DATABASE", "DB_PORT", fallback='3306')
+    _mysqldb = _config.get("DATABASE", "DB_NAME")
+    _mysqluser = _config.get("DATABASE", "DB_USER")
+    _mysqlpass = _config.get("DATABASE", "DB_PASS")
+    _mysqldbtype = _config.get("DATABASE", "DB_TYPE")
     _try_adb_first = _config.get("REBOOTOPTIONS", "TRY_ADB_FIRST")
     _sleeptime_between_check = _config.get("REBOOTOPTIONS", "SLEEPTIME_BETWEEN_CHECK", fallback=5)
     _proto_timeout = _config.get("REBOOTOPTIONS", "PROTO_TIMEOUT", fallback=15)
@@ -137,9 +138,18 @@ class rmdItem(object):
     def getDeviceStatusData(self):
         # get device status data
 
-        select_device_status_data = (
-                    "SELECT s.name, t.lastProtoDateTime, t.currentSleepTime, t.idle, a.name  FROM mad.trs_status t, mad.settings_device s, mad.settings_area a where s.device_id = t.device_id and t.area_id = a.area_id; "
+        if self._mysqldbtype == "MAD":
+            logging.debug("DB Type is MAD.")
+            select_device_status_data = (
+                    "SELECT s.name, t.lastProtoDateTime, t.currentSleepTime, t.idle, a.name  FROM trs_status t, settings_device s, settings_area a where s.device_id = t.device_id and t.area_id = a.area_id; "
                       )        
+        elif self._mysqldbtype == "RDM":
+            logging.debug("DB Type is RDM.")
+            select_device_status_data = (
+                    "SELECT d.uuid, d.last_seen, d.instance_name  FROM device d;"
+                      )
+        else:
+            logging.error("DB Type not known. Please check config")
 
         try:
             logging.debug("Get db connection from connection pool.")
@@ -155,13 +165,24 @@ class rmdItem(object):
                 records = cursor.fetchall()
                 logging.debug("Select status data from database and update rmd data.")
                 for row in records:
-                    try:
-                        self._rmd_data[row[0]]['last_proto_data'] = datetime.datetime.timestamp(datetime.datetime.strptime(str(row[1]),"%Y-%m-%d %H:%M:%S"))
-                        self._rmd_data[row[0]]['current_sleep_time'] = row[2]
-                        self._rmd_data[row[0]]['idle_status'] = row[3]
-                        self._rmd_data[row[0]]['worker_status'] = row[4]
-                    except:
-                        logging.debug("Device not configured. Ignoring data.")
+                    if self._mysqldbtype == "MAD":
+                        try:
+                            self._rmd_data[row[0]]['last_proto_data'] = datetime.datetime.timestamp(datetime.datetime.strptime(str(row[1]),"%Y-%m-%d %H:%M:%S"))
+                            self._rmd_data[row[0]]['current_sleep_time'] = row[2]
+                            self._rmd_data[row[0]]['idle_status'] = row[3]
+                            self._rmd_data[row[0]]['worker_status'] = row[4]
+                        except:
+                            logging.debug("Device not configured. Ignoring data.")
+                    elif self._mysqldbtype == "RDM":	
+                        try:
+                            self._rmd_data[row[0]]['last_proto_data'] = row[1]
+                            self._rmd_data[row[0]]['current_sleep_time'] = 0
+                            self._rmd_data[row[0]]['idle_status'] = 0
+                            self._rmd_data[row[0]]['worker_status'] = row[2]
+                        except:
+                            logging.debug("Device not configured. Ignoring data.")
+                    else:
+                        logging.error("DB Type not known. Please check config")
 
         except Exception as e:
             logging.error("Error get connection from Connection pool ", e)
