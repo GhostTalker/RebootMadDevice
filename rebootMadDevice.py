@@ -5,7 +5,7 @@
 #
 __author__ = "GhostTalker"
 __copyright__ = "Copyright 2022, The GhostTalker project"
-__version__ = "3.0.4"
+__version__ = "3.1.1"
 __status__ = "TEST"
 
 
@@ -58,7 +58,9 @@ class rmdItem(object):
     _ip_ban_check_ping = _config.get("IP_BAN_CHECK", "BANPING", fallback=0)
     _discord_webhook_enable = _config.get("DISCORD", "WEBHOOK")
     _discord_webhook_url = _config.get("DISCORD", "WEBHOOK_URL", fallback='')
-
+    _reboot_cycle = _config.get("REBOOT_CYCLE", "REBOOT_CYCLE", fallback='False')
+    _reboot_cycle_last_timestamp = int(datetime.datetime.timestamp(datetime.datetime.now()))
+    _reboot_cycle_wait_time = _config.get("REBOOT_CYCLE", "REBOOT_CYCLE_WAIT_TIME", fallback=20)
 
     def __init__(self):
         self.createConnectionPool()  
@@ -126,8 +128,8 @@ class rmdItem(object):
                                 'idle_status': "",
                                 'last_proto_data': "",
                                 'current_sleep_time': "",
-                                'last_reboot_time': "",
-                                'reboot_count': "0",
+                                'last_reboot_time': 0,
+                                'reboot_count': 0,
                                 'reboot_nessessary': False,
                                 'reboot_force': False,
                                 'reboot_type': None,
@@ -452,7 +454,7 @@ class rmdItem(object):
         logging.info("Origin to reboot is: {}".format(DEVICE_ORIGIN_TO_REBOOT))
         logging.info("Force option is: {}".format(self._rmd_data[DEVICE_ORIGIN_TO_REBOOT]['reboot_force']))
 
-        self._rmd_data[DEVICE_ORIGIN_TO_REBOOT]['reboot_count'] = int(self._rmd_data[DEVICE_ORIGIN_TO_REBOOT]['reboot_count']) + 1
+        self._rmd_data[DEVICE_ORIGIN_TO_REBOOT]['reboot_count'] = self._rmd_data[DEVICE_ORIGIN_TO_REBOOT]['reboot_count'] + 1
         self._rmd_data[DEVICE_ORIGIN_TO_REBOOT]['last_reboot_time'] = self.makeTimestamp()
 
         if self._rmd_data[DEVICE_ORIGIN_TO_REBOOT]['reboot_force']:
@@ -796,8 +798,26 @@ if __name__ == '__main__':
                     except:
                         logging.error("Error setting status LED for device {} ".format(device))
 
-
-            ##checking for rebooted devices
+            if eval(rmdItem._reboot_cycle):
+                ## Check for daily PowerCycle
+                logging.info("Checking devices which are not rebooted within 24h.")
+                if int(rmdItem._reboot_cycle_last_timestamp) < int(datetime.datetime.timestamp(datetime.datetime.now() - datetime.timedelta(minutes = int(rmdItem._reboot_cycle_wait_time)))):
+                    logging.debug("Last reboot cycle was before more than 5 minutes. Marking one device for doing reboot.") 
+                    dailyPowerCycleList = []
+                    rmdItem._reboot_cycle_last_timestamp = int(datetime.datetime.timestamp(datetime.datetime.now()))
+                    for device in list(rmdItem._rmd_data):
+                        if int(rmdItem._rmd_data[device]['last_reboot_time']) < int(datetime.datetime.timestamp(datetime.datetime.now() - datetime.timedelta(hours = 24))):
+                            logging.debug("Device " + device  + " not rebooted within 24h. Adding to list.")
+                            dailyPowerCycleList.append(device)
+                    if dailyPowerCycleList:
+                        logging.debug("Device " + dailyPowerCycleList[0] + " marked for reboot because its on the list dailyPowerCycleList.")
+                        rmdItem._rmd_data[dailyPowerCycleList[0]]['reboot_nessessary'] = True
+                    else:
+                        logging.debug("No device added to list dailyPowerCycleList.")
+                else:
+                    logging.debug("reboot_cycle_last_timestamp not older than configured wait time. skipping.")
+                    
+            ## checking for rebooted devices
             rebootedDevicedList = []
             logging.debug("Find rebooted devices for information and update discord message.")	
             logging.info("")
