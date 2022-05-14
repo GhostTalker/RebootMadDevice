@@ -45,6 +45,7 @@ or
 
 #### Features and supported hardware:
 ```
+- Reboot every device one times within 24 hours (optional)
 - RDM and MAD support
 - support for status LED with WS2812 led stripe
 - support for external status LED via websocket (https://github.com/FabLab-Luenen/McLighting)
