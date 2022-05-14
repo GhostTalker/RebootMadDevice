@@ -815,7 +815,7 @@ if __name__ == '__main__':
                     else:
                         logging.debug("No device added to list dailyPowerCycleList.")
                 else:
-                    logging.debug("reboot_cycle_last_timestamp not older than configured wait time. skipping.")
+                    logging.info("reboot_cycle_last_timestamp not older than configured wait time. skipping.")
                     
             ## checking for rebooted devices
             rebootedDevicedList = []
