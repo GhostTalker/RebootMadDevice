@@ -5,7 +5,7 @@
 #
 __author__ = "GhostTalker"
 __copyright__ = "Copyright 2022, The GhostTalker project"
-__version__ = "3.1.1"
+__version__ = "3.1.2"
 __status__ = "TEST"
 
 
@@ -171,7 +171,7 @@ class rmdItem(object):
                     if self._mysqldbtype == "MAD":
                         try:
                             lastProtoDateTime = datetime.datetime.strptime(str(row[1]),"%Y-%m-%d %H:%M:%S")
-                            if _mysql_utc:
+                            if self._mysql_utc:
                                 self._rmd_data[row[0]]['last_proto_data'] = datetime.datetime.timestamp(lastProtoDateTime.replace(tzinfo=datetime.timezone.utc))
                             else:
                                 self._rmd_data[row[0]]['last_proto_data'] = datetime.datetime.timestamp(lastProtoDateTime)
@@ -340,7 +340,7 @@ class rmdItem(object):
     
     
     def discord_message(self, device_origin, fixed=False):
-        if not _discord_webhook_enable:
+        if not self._discord_webhook_enable:
             return 
         
         # create data for webhook
