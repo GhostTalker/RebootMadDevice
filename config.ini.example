@@ -19,6 +19,8 @@ DB_NAME: <mad database>
 DB_USER: <db user>
 DB_PASS: <db password>
 DB_TYPE: <MAD/RDM>
+# newer MAD versions store times in UTC timezone, if set to false, local timezone is used
+DB_UTC_TIME: <True/False>
 
 [REBOOTOPTIONS]
 TRY_ADB_FIRST = <True/False>

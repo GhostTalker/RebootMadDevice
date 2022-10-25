@@ -36,6 +36,7 @@ class rmdItem(object):
     _mysqluser = _config.get("DATABASE", "DB_USER")
     _mysqlpass = _config.get("DATABASE", "DB_PASS")
     _mysqldbtype = _config.get("DATABASE", "DB_TYPE")
+    _mysql_utc = _config.get("DATABASE", "DB_UTC_TIME", fallback='False')
     _try_adb_first = _config.get("REBOOTOPTIONS", "TRY_ADB_FIRST")
     _sleeptime_between_check = _config.get("REBOOTOPTIONS", "SLEEPTIME_BETWEEN_CHECK", fallback=5)
     _proto_timeout = _config.get("REBOOTOPTIONS", "PROTO_TIMEOUT", fallback=15)
@@ -169,7 +170,11 @@ class rmdItem(object):
                 for row in records:
                     if self._mysqldbtype == "MAD":
                         try:
-                            self._rmd_data[row[0]]['last_proto_data'] = datetime.datetime.timestamp(datetime.datetime.strptime(str(row[1]),"%Y-%m-%d %H:%M:%S"))
+                            lastProtoDateTime = datetime.datetime.strptime(str(row[1]),"%Y-%m-%d %H:%M:%S")
+                            if _mysql_utc:
+                                self._rmd_data[row[0]]['last_proto_data'] = datetime.datetime.timestamp(lastProtoDateTime.replace(tzinfo=datetime.timezone.utc))
+                            else:
+                                self._rmd_data[row[0]]['last_proto_data'] = datetime.datetime.timestamp(lastProtoDateTime)
                             self._rmd_data[row[0]]['current_sleep_time'] = row[2]
                             self._rmd_data[row[0]]['idle_status'] = row[3]
                             self._rmd_data[row[0]]['worker_status'] = row[4]
