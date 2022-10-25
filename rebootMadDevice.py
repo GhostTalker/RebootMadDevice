@@ -56,7 +56,7 @@ class rmdItem(object):
     _ip_ban_check_enable = _config.get("IP_BAN_CHECK", "BANCHECK_ENABLE")
     _ip_ban_check_wh = _config.get("IP_BAN_CHECK", "BANCHECK_WEBHOOK", fallback='')
     _ip_ban_check_ping = _config.get("IP_BAN_CHECK", "BANPING", fallback=0)
-    _discord_webhook_enable = _config.get("DISCORD", "WEBHOOK")
+    _discord_webhook_enable = _config.get("DISCORD", "WEBHOOK", fallback='False')
     _discord_webhook_url = _config.get("DISCORD", "WEBHOOK_URL", fallback='')
     _reboot_cycle = _config.get("REBOOT_CYCLE", "REBOOT_CYCLE", fallback='False')
     _reboot_cycle_last_timestamp = int(datetime.datetime.timestamp(datetime.datetime.now()))
@@ -335,6 +335,9 @@ class rmdItem(object):
     
     
     def discord_message(self, device_origin, fixed=False):
+        if not _discord_webhook_enable:
+            return 
+        
         # create data for webhook
         logging.info('Start Webhook for device ' + device_origin )
 
