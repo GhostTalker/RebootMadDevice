@@ -12,12 +12,13 @@ ADB_PORT: 5555
 LOG_MODE: console
 LOG_LEVEL: INFO
 
-[MAD_DATABASE]
+[DATABASE]
 DB_HOST: <IP Adresse>
 DB_PORT: 3306
-DB_NAME: <mad database>
+DB_NAME: <databasename>
 DB_USER: <db user>
 DB_PASS: <db password>
+DB_TYPE: <MAD or RDM>
 
 [REBOOTOPTIONS]
 TRY_ADB_FIRST = <True/False>
