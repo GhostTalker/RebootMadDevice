@@ -4,7 +4,7 @@
 # Script to restart ATV devices which are not responsable
 #
 __author__ = "GhostTalker"
-__copyright__ = "Copyright 2022, The GhostTalker project"
+__copyright__ = "Copyright 2023, The GhostTalker project"
 __version__ = "3.2.0"
 __status__ = "TEST"
 
@@ -36,6 +36,7 @@ class rmdItem(object):
     _mysqluser = _config.get("DATABASE", "DB_USER")
     _mysqlpass = _config.get("DATABASE", "DB_PASS")
     _mysqldbtype = _config.get("DATABASE", "DB_TYPE")
+    _mysql_utc = _config.getboolean("DATABASE", "DB_UTC_TIME", fallback=False)
     _try_adb_first = _config.get("REBOOTOPTIONS", "TRY_ADB_FIRST")
     _try_restart_mapper_first = _config.get("REBOOTOPTIONS", "TRY_RESTART_MAPPER_FIRST", fallback='False')
     _sleeptime_between_check = _config.get("REBOOTOPTIONS", "SLEEPTIME_BETWEEN_CHECK", fallback=5)
@@ -57,7 +58,7 @@ class rmdItem(object):
     _ip_ban_check_enable = _config.get("IP_BAN_CHECK", "BANCHECK_ENABLE")
     _ip_ban_check_wh = _config.get("IP_BAN_CHECK", "BANCHECK_WEBHOOK", fallback='')
     _ip_ban_check_ping = _config.get("IP_BAN_CHECK", "BANPING", fallback=0)
-    _discord_webhook_enable = _config.get("DISCORD", "WEBHOOK")
+    _discord_webhook_enable = _config.getboolean("DISCORD", "WEBHOOK", fallback=False)
     _discord_webhook_url = _config.get("DISCORD", "WEBHOOK_URL", fallback='')
     _reboot_cycle = _config.get("REBOOT_CYCLE", "REBOOT_CYCLE", fallback='False')
     _reboot_cycle_last_timestamp = int(datetime.datetime.timestamp(datetime.datetime.now()))
@@ -171,8 +172,11 @@ class rmdItem(object):
                 for row in records:
                     if self._mysqldbtype == "MAD":
                         try:
-                            self._rmd_data[row[0]]['last_proto_data'] = datetime.datetime.timestamp(datetime.datetime.strptime(str(row[1]),"%Y-%m-%d %H:%M:%S"))
-                            self._rmd_data[row[0]]['current_sleep_time'] = row[2]
+                            lastProtoDateTime = datetime.datetime.strptime(str(row[1]),"%Y-%m-%d %H:%M:%S")
+                            if self._mysql_utc:
+                                self._rmd_data[row[0]]['last_proto_data'] = datetime.datetime.timestamp(lastProtoDateTime.replace(tzinfo=datetime.timezone.utc))
+                            else:
+                                self._rmd_data[row[0]]['last_proto_data'] = datetime.datetime.timestamp(lastProtoDateTime)                            self._rmd_data[row[0]]['current_sleep_time'] = row[2]
                             self._rmd_data[row[0]]['idle_status'] = row[3]
                             self._rmd_data[row[0]]['worker_status'] = row[4]
                         except:
@@ -337,6 +341,9 @@ class rmdItem(object):
     
     
     def discord_message(self, device_origin, fixed=False):
+        if not self._discord_webhook_enable:
+            return
+
         # create data for webhook
         logging.info('Start Webhook for device ' + device_origin )
 
