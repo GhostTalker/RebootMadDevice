@@ -5,7 +5,7 @@
 #
 __author__ = "GhostTalker"
 __copyright__ = "Copyright 2022, The GhostTalker project"
-__version__ = "3.2.0"
+__version__ = "3.1.1"
 __status__ = "TEST"
 
 
@@ -37,7 +37,6 @@ class rmdItem(object):
     _mysqlpass = _config.get("DATABASE", "DB_PASS")
     _mysqldbtype = _config.get("DATABASE", "DB_TYPE")
     _try_adb_first = _config.get("REBOOTOPTIONS", "TRY_ADB_FIRST")
-    _try_restart_mapper_first = _config.get("REBOOTOPTIONS", "TRY_RESTART_MAPPER_FIRST", fallback='False')
     _sleeptime_between_check = _config.get("REBOOTOPTIONS", "SLEEPTIME_BETWEEN_CHECK", fallback=5)
     _proto_timeout = _config.get("REBOOTOPTIONS", "PROTO_TIMEOUT", fallback=15)
     _force_reboot_timeout = _config.get("REBOOTOPTIONS", "FORCE_REBOOT_TIMEOUT", fallback=20)
@@ -121,7 +120,6 @@ class rmdItem(object):
         logging.debug("Init rmd data dictonary.")
         for device in _jsondata:
             self._rmd_data[device]= {'ip_address': _jsondata[device]["IP_ADDRESS"],
-                                'mapper_mode': _jsondata[device]["MAPPER_MODE"],
                                 'switch_mode': _jsondata[device]["SWITCH_MODE"],
                                 'switch_option': _jsondata[device]["SWITCH_OPTION"],
                                 'switch_value': _jsondata[device]["SWITCH_VALUE"],
@@ -499,21 +497,6 @@ class rmdItem(object):
 
 
     def reboot_device(self, DEVICE_ORIGIN_TO_REBOOT):
-        if eval(self._try_restart_mapper_first):
-            logging.info("Try to restart {} on Device {}".format(self._rmd_data[DEVICE_ORIGIN_TO_REBOOT]['mapper_mode'],DEVICE_ORIGIN_TO_REBOOT))
-            try:
-                ADBLOC="{}/adb".format(self._adb_path)
-                DEVICELOC="{}:{}".format(self._rmd_data[DEVICE_ORIGIN_TO_REBOOT]['ip_address'], self._adb_port)
-                MAPPERSCRIPT="{}/restart{}.sh".format(self._rootdir, self._rmd_data[DEVICE_ORIGIN_TO_REBOOT]['mapper_mode'] )
-                logging.debug("Mapper-Script command: {}".format(MAPPERSCRIPT))
-                subprocess.Popen([MAPPERSCRIPT, ADBLOC, DEVICELOC])
-                logging.info("Restart Mapper on Device {} was successfull.".format(DEVICE_ORIGIN_TO_REBOOT))
-                self._rmd_data[DEVICE_ORIGIN_TO_REBOOT]['reboot_forced'] = False
-                self._rmd_data[DEVICE_ORIGIN_TO_REBOOT]['reboot_type'] = "MAPPER"
-                return
-            except:			
-                logging.info("Execute of restart Mapper on Device {} was not successfull. Try reboot device now.".format(DEVICE_ORIGIN_TO_REBOOT))
-
         #cmd = "{}/adb -s {}:{} reboot".format(self.adb_path, self.device_list[DEVICE_ORIGIN_TO_REBOOT], self.adb_port)
         logging.info("rebooting Device {}. Please wait".format(DEVICE_ORIGIN_TO_REBOOT))
         try:
@@ -845,7 +828,7 @@ if __name__ == '__main__':
 
             for device in list(rmdItem._rmd_data):
                 if str(rmdItem._rmd_data[device]['reboot_nessessary']) == 'rebooting': 
-                    rebootedDevicedList.append({'device': device, 'worker_status': rmdItem._rmd_data[device]['worker_status'], 'last_proto_data': rmdItem.timestamp_to_readable_datetime(rmdItem._rmd_data[device]['last_proto_data']), 'offline_minutes': rmdItem.calc_past_min_from_now(rmdItem._rmd_data[device]['last_proto_data']), 'count': rmdItem._rmd_data[device]['reboot_count'], 'last_reboot_time': rmdItem.timestamp_to_readable_datetime(rmdItem._rmd_data[device]['last_reboot_time']), 'reboot_ago_min': rmdItem.calc_past_min_from_now(rmdItem._rmd_data[device]['last_reboot_time']), 'type': rmdItem._rmd_data[DEVICE_ORIGIN_TO_REBOOT]['reboot_type']})
+                    rebootedDevicedList.append({'device': device, 'worker_status': rmdItem._rmd_data[device]['worker_status'], 'last_proto_data': rmdItem.timestamp_to_readable_datetime(rmdItem._rmd_data[device]['last_proto_data']), 'offline_minutes': rmdItem.calc_past_min_from_now(rmdItem._rmd_data[device]['last_proto_data']), 'reboot_count': rmdItem._rmd_data[device]['reboot_count'], 'last_reboot_time': rmdItem.timestamp_to_readable_datetime(rmdItem._rmd_data[device]['last_reboot_time']), 'reboot_ago_min': rmdItem.calc_past_min_from_now(rmdItem._rmd_data[device]['last_reboot_time'])})
 
                     # Update no_data time and existing Discord messages
                     if rmdItem._rmd_data[device]['webhook_id'] is not None:
@@ -853,10 +836,10 @@ if __name__ == '__main__':
                             rmdItem.discord_message(device)
 
             if not rebootedDevicedList:
-                rmdItem.printTable([{'device': '-','worker_status': '-','last_proto_data': '-','offline_minutes': '-','count': '-','last_reboot_time': '-','reboot_ago_min': '-','type': '-'}], ['device','worker_status','last_proto_data','offline_minutes','count','last_reboot_time','reboot_ago_min','type'])
+                rmdItem.printTable([{'device': '-','worker_status': '-','last_proto_data': '-','offline_minutes': '-','reboot_count': '-','last_reboot_time': '-','reboot_ago_min': '-'}], ['device','worker_status','last_proto_data','offline_minutes','reboot_count','last_reboot_time','reboot_ago_min'])
                 logging.info("")
             else:
-                rmdItem.printTable(rebootedDevicedList, ['device','worker_status','last_proto_data','offline_minutes','count','last_reboot_time','reboot_ago_min','type'])
+                rmdItem.printTable(rebootedDevicedList, ['device','worker_status','last_proto_data','offline_minutes','reboot_count','last_reboot_time','reboot_ago_min'])
                 logging.info("")						
 
             ##checking for bad devices
@@ -870,13 +853,13 @@ if __name__ == '__main__':
 
             for device in list(rmdItem._rmd_data):
                 if str(rmdItem._rmd_data[device]['reboot_nessessary']) == 'True':
-                    badDevicedList.append({'device': device, 'worker_status': rmdItem._rmd_data[device]['worker_status'], 'last_proto_data': rmdItem.timestamp_to_readable_datetime(rmdItem._rmd_data[device]['last_proto_data']), 'offline_minutes': rmdItem.calc_past_min_from_now(rmdItem._rmd_data[device]['last_proto_data']), 'count': rmdItem._rmd_data[device]['reboot_count'], 'reboot_nessessary': rmdItem._rmd_data[device]['reboot_nessessary'], 'force': rmdItem._rmd_data[device]['reboot_force']})
+                    badDevicedList.append({'device': device, 'worker_status': rmdItem._rmd_data[device]['worker_status'], 'last_proto_data': rmdItem.timestamp_to_readable_datetime(rmdItem._rmd_data[device]['last_proto_data']), 'offline_minutes': rmdItem.calc_past_min_from_now(rmdItem._rmd_data[device]['last_proto_data']), 'reboot_count': rmdItem._rmd_data[device]['reboot_count'], 'reboot_nessessary': rmdItem._rmd_data[device]['reboot_nessessary'], 'reboot_force': rmdItem._rmd_data[device]['reboot_force']})
 
             if not badDevicedList:
-                rmdItem.printTable([{'device': '-','worker_status': '-','last_proto_data': '-','offline_minutes': '-','count': '-','reboot_nessessary': '-', 'force': '-'}], ['device','worker_status','last_proto_data','offline_minutes','count','reboot_nessessary','force'])
+                rmdItem.printTable([{'device': '-','worker_status': '-','last_proto_data': '-','offline_minutes': '-','reboot_count': '-','reboot_nessessary': '-','reboot_force': '-'}], ['device','worker_status','last_proto_data','offline_minutes','reboot_count','reboot_nessessary','reboot_force'])
                 logging.info("")
             else:
-                rmdItem.printTable(badDevicedList, ['device','worker_status','last_proto_data','offline_minutes','count','reboot_nessessary','force'])
+                rmdItem.printTable(badDevicedList, ['device','worker_status','last_proto_data','offline_minutes','reboot_count','reboot_nessessary','reboot_force'])
                 logging.info("")
 
             for badDevice in badDevicedList:
