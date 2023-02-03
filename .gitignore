@@ -3,5 +3,5 @@
 venv/
 config.ini
 devices.json
-
+restartVMAPPER.sh
 

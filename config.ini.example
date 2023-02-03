@@ -21,6 +21,7 @@ DB_PASS: <db password>
 
 [REBOOTOPTIONS]
 TRY_ADB_FIRST = <True/False>
+TRY_RESTART_MAPPER_FIRST = <True/False>
 #values are in minutes
 SLEEPTIME_BETWEEN_CHECK = 2
 PROTO_TIMEOUT = 10
