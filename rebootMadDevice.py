@@ -176,7 +176,8 @@ class rmdItem(object):
                             if self._mysql_utc:
                                 self._rmd_data[row[0]]['last_proto_data'] = datetime.datetime.timestamp(lastProtoDateTime.replace(tzinfo=datetime.timezone.utc))
                             else:
-                                self._rmd_data[row[0]]['last_proto_data'] = datetime.datetime.timestamp(lastProtoDateTime)                            self._rmd_data[row[0]]['current_sleep_time'] = row[2]
+                                self._rmd_data[row[0]]['last_proto_data'] = datetime.datetime.timestamp(lastProtoDateTime)
+                            self._rmd_data[row[0]]['current_sleep_time'] = row[2]
                             self._rmd_data[row[0]]['idle_status'] = row[3]
                             self._rmd_data[row[0]]['worker_status'] = row[4]
                         except:
