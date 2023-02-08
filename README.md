@@ -75,6 +75,7 @@ It is possible to use different MAPPER_MODE on each device.
 ```
 #### Whats new:
 ```
+- Add waittime for force reboots
 - Add support to restart mapper software instead of reboot
 - RDM support
 - based on MAD/RDM database 

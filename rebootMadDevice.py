@@ -5,7 +5,7 @@
 #
 __author__ = "GhostTalker"
 __copyright__ = "Copyright 2023, The GhostTalker project"
-__version__ = "3.2.0"
+__version__ = "3.2.4"
 __status__ = "TEST"
 
 
@@ -42,6 +42,7 @@ class rmdItem(object):
     _sleeptime_between_check = _config.get("REBOOTOPTIONS", "SLEEPTIME_BETWEEN_CHECK", fallback=5)
     _proto_timeout = _config.get("REBOOTOPTIONS", "PROTO_TIMEOUT", fallback=15)
     _force_reboot_timeout = _config.get("REBOOTOPTIONS", "FORCE_REBOOT_TIMEOUT", fallback=20)
+    _force_reboot_waittime = _config.get("REBOOTOPTIONS", "FORCE_REBOOT_WAITTIME", fallback=0)
     _reboot_waittime = _config.get("REBOOTOPTIONS", "REBOOT_WAITTIME", fallback=15)
     _adb_path = _config.get("ENVIROMENT", "ADB_PATH", fallback='/usr/bin')
     _adb_port = _config.get("ENVIROMENT", "ADB_PORT", fallback='5555')
@@ -137,6 +138,7 @@ class rmdItem(object):
                                 'reboot_force': False,
                                 'reboot_type': None,
                                 'reboot_forced': False,
+                                'last_reboot_forced_time': None,
                                 'webhook_id': None}
     	
     
@@ -181,7 +183,7 @@ class rmdItem(object):
                             self._rmd_data[row[0]]['idle_status'] = row[3]
                             self._rmd_data[row[0]]['worker_status'] = row[4]
                         except:
-                            logging.debug("Device not configured. Ignoring data.")
+                            logging.debug("Device {} not configured. Ignoring data.".format(row[0]))
                     elif self._mysqldbtype == "RDM":	
                         try:
                             self._rmd_data[row[0]]['last_proto_data'] = row[1]
@@ -189,7 +191,7 @@ class rmdItem(object):
                             self._rmd_data[row[0]]['idle_status'] = 0
                             self._rmd_data[row[0]]['worker_status'] = row[2]
                         except:
-                            logging.debug("Device not configured. Ignoring data.")
+                            logging.debug("Device {} not configured. Ignoring data.".format(row[0]))
                     else:
                         logging.error("DB Type not known. Please check config")
 
@@ -463,11 +465,13 @@ class rmdItem(object):
 
         logging.info("Origin to reboot is: {}".format(DEVICE_ORIGIN_TO_REBOOT))
         logging.info("Force option is: {}".format(self._rmd_data[DEVICE_ORIGIN_TO_REBOOT]['reboot_force']))
+        logging.debug("Rebootcount is: {}".format(self._rmd_data[DEVICE_ORIGIN_TO_REBOOT]['reboot_count']))
 
         self._rmd_data[DEVICE_ORIGIN_TO_REBOOT]['reboot_count'] = self._rmd_data[DEVICE_ORIGIN_TO_REBOOT]['reboot_count'] + 1
         self._rmd_data[DEVICE_ORIGIN_TO_REBOOT]['last_reboot_time'] = self.makeTimestamp()
 
-        if self._rmd_data[DEVICE_ORIGIN_TO_REBOOT]['reboot_force']:
+        if self._rmd_data[DEVICE_ORIGIN_TO_REBOOT]['reboot_force'] and self.calc_past_min_from_now(self._rmd_data[DEVICE_ORIGIN_TO_REBOOT]['last_reboot_forced_time']) > int(self._force_reboot_waittime):
+            self._rmd_data[DEVICE_ORIGIN_TO_REBOOT]['last_reboot_forced_time'] = self.makeTimestamp()
             self.reboot_device_via_power(DEVICE_ORIGIN_TO_REBOOT)
             return
         while counter < try_counter:
@@ -853,7 +857,7 @@ if __name__ == '__main__':
 
             for device in list(rmdItem._rmd_data):
                 if str(rmdItem._rmd_data[device]['reboot_nessessary']) == 'rebooting': 
-                    rebootedDevicedList.append({'device': device, 'worker_status': rmdItem._rmd_data[device]['worker_status'], 'last_proto_data': rmdItem.timestamp_to_readable_datetime(rmdItem._rmd_data[device]['last_proto_data']), 'offline_minutes': rmdItem.calc_past_min_from_now(rmdItem._rmd_data[device]['last_proto_data']), 'count': rmdItem._rmd_data[device]['reboot_count'], 'last_reboot_time': rmdItem.timestamp_to_readable_datetime(rmdItem._rmd_data[device]['last_reboot_time']), 'reboot_ago_min': rmdItem.calc_past_min_from_now(rmdItem._rmd_data[device]['last_reboot_time']), 'type': rmdItem._rmd_data[DEVICE_ORIGIN_TO_REBOOT]['reboot_type']})
+                    rebootedDevicedList.append({'device': device, 'worker_status': rmdItem._rmd_data[device]['worker_status'], 'last_proto_data': rmdItem.timestamp_to_readable_datetime(rmdItem._rmd_data[device]['last_proto_data']), 'offline_minutes': rmdItem.calc_past_min_from_now(rmdItem._rmd_data[device]['last_proto_data']), 'count': rmdItem._rmd_data[device]['reboot_count'], 'last_reboot_time': rmdItem.timestamp_to_readable_datetime(rmdItem._rmd_data[device]['last_reboot_time']), 'reboot_ago_min': rmdItem.calc_past_min_from_now(rmdItem._rmd_data[device]['last_reboot_time']), 'type': rmdItem._rmd_data[device]['reboot_type']})
 
                     # Update no_data time and existing Discord messages
                     if rmdItem._rmd_data[device]['webhook_id'] is not None:
