@@ -738,12 +738,13 @@ if __name__ == '__main__':
     logrootdir = os.path.dirname(os.path.abspath('config.ini'))
     logconfig.read(logrootdir + "/config.ini")
     log_mode = logconfig.get("LOGGING", "LOG_MODE", fallback='console')
+    log_filename = logconfig.get("LOGGING", "LOG_FILENAME", fallback='RMDClient.log')
     log_level = logconfig.get("LOGGING", "LOG_LEVEL", fallback='INFO')
 
     if log_mode == "console":
         create_stdout_log()
-    elif _log_mode == "file":
-        create_timed_rotating_log('RMDclient.log')
+    elif log_mode == "file":
+        create_timed_rotating_log(log_filename)
     else:
         create_timed_rotating_log('/dev/null')
 
