@@ -43,6 +43,7 @@ class rmdItem(object):
     _proto_timeout = _config.get("REBOOTOPTIONS", "PROTO_TIMEOUT", fallback=15)
     _force_reboot_timeout = _config.get("REBOOTOPTIONS", "FORCE_REBOOT_TIMEOUT", fallback=20)
     _force_reboot_waittime = _config.get("REBOOTOPTIONS", "FORCE_REBOOT_WAITTIME", fallback=0)
+    _off_on_sleep = _config.get("REBOOTOPTIONS", "OFF_ON_SLEEP", fallback=5)
     _reboot_waittime = _config.get("REBOOTOPTIONS", "REBOOT_WAITTIME", fallback=15)
     _adb_path = _config.get("ENVIROMENT", "ADB_PATH", fallback='/usr/bin')
     _adb_port = _config.get("ENVIROMENT", "ADB_PORT", fallback='5555')
@@ -558,7 +559,7 @@ class rmdItem(object):
             poweroff = powerSwitchValue.split(";")[1]
             logging.info("turn HTTP PowerSwitch off")
             requests.get(poweroff)
-            time.sleep(5)
+            time.sleep(int(self._off_on_sleep))
             logging.info("turn HTTP PowerSwitch on")
             requests.get(poweron)
             logging.debug("PowerSwitch with HTML done.")
@@ -632,7 +633,7 @@ class rmdItem(object):
                 subprocess.check_output(powerSwitchValue, shell=True)
             except subprocess.CalledProcessError:
                 logging.error("failed to fire command")
-            time.sleep(5)
+            time.sleep(int(self._off_on_sleep))
             logging.debug("PowerSwitch with CMD done.")
             self._rmd_data[DEVICE_ORIGIN_TO_REBOOT]['reboot_forced'] = True
             self._rmd_data[DEVICE_ORIGIN_TO_REBOOT]['reboot_type'] = "CMD"
@@ -648,7 +649,7 @@ class rmdItem(object):
                 subprocess.check_output(poweroff, shell=True)
             except subprocess.CalledProcessError:
                 logging.error("failed to start script")
-            time.sleep(5)
+            time.sleep(int(self._off_on_sleep))
             logging.info("execute script for PowerSwitch on")
             try:
                 subprocess.check_output(poweron, shell=True)
@@ -664,7 +665,7 @@ class rmdItem(object):
                 subprocess.check_output(powerSwitchValue, shell=True)
             except subprocess.CalledProcessError:
                 logging.error("failed to fire poe port reset")
-            time.sleep(5)
+            time.sleep(int(self._off_on_sleep))
             logging.debug("PowerSwitch with POE done.")
             return
 
@@ -680,7 +681,7 @@ class rmdItem(object):
                 subprocess.check_output(pbportoff, shell=True)
             except subprocess.CalledProcessError:
                 logging.error("failed send command to PowerBoard")
-            time.sleep(5)
+            time.sleep(int(self._off_on_sleep))
             logging.info("send command to Powerboard for PowerSwitch on")
             try:
                 subprocess.check_output(pbporton, shell=True)
@@ -702,7 +703,7 @@ class rmdItem(object):
                 logging.info("send SNMP command port OFF to SWITCH")
             except subprocess.CalledProcessError:
                 logging.error("failed to fire SNMP command")
-            time.sleep(5)
+            time.sleep(int(self._off_on_sleep))
             try:
                 subprocess.check_output(snmpporton, shell=True)
                 logging.info("send SNMP command port ON to SWITCH")
