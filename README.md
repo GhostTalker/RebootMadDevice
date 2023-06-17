@@ -1,4 +1,4 @@
-# RebootMadDevice V3 - DB version
+# RebootMadDevice V4 - Flygon API version ( under developing)
 Reboot ATV devices via ADB or PowerSwitch when device is not responding to MAD or RDM.
 
 Only works with Python 3.6 and above.
@@ -7,7 +7,7 @@ Run the installation and this scripts not with sudo. Use root user!
 
 Running the daemon is only possible with root user!
 
-After restarting MAD it will take about 5 minutes before data is usable. 
+After restarting Flygon it will take up to 5 minutes before data is usable. 
 
 #### Install:
 ```
@@ -63,7 +63,7 @@ It is possible to use different MAPPER_MODE on each device.
 #### Features and supported hardware:
 ```
 - Reboot every device one times within 24 hours (optional)
-- RDM and MAD support
+- Flygon support
 - support for status LED with WS2812 led stripe
 - support for external status LED via websocket (https://github.com/FabLab-Luenen/McLighting)
 - usable with PowerBoard (Link will follow)
@@ -75,10 +75,11 @@ It is possible to use different MAPPER_MODE on each device.
 ```
 #### Whats new:
 ```
+- Restart Script for mapper software
 - Add waittime for force reboots
 - Add support to restart mapper software instead of reboot
-- RDM support
-- based on MAD/RDM database 
+- Flygon support
+- based on Flygon database 
 - client architecture
 - timeout can be configured in config.ini
 - next reboot of a device only after defined timeframe
@@ -86,7 +87,7 @@ It is possible to use different MAPPER_MODE on each device.
 - devided requirements in two parts (general and raspi)
 - ADB reboot optional
 - manual reboot script for testing
-- IP ban check for MAD backend and PTC
+- IP ban check for PTC
 ```
 ## License
 See the [LICENSE](https://github.com/GhostTalker/RebootMadDevice/blob/master/LICENSE.md) file for license rights and limitations (MIT).
