@@ -23,6 +23,9 @@ DB_TYPE: <MAD/RDM>
 # newer MAD versions store times in UTC timezone, if set to false, local timezone is used
 DB_UTC_TIME: <True/False>
 
+[FLYGONAPI]
+API_ENDPOINT: http://<IP>:<PORT>/api/workers/?perPage=1000
+
 [REBOOTOPTIONS]
 TRY_ADB_FIRST = <True/False>
 TRY_RESTART_MAPPER_FIRST = <True/False>
