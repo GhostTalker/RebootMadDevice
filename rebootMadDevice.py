@@ -5,8 +5,8 @@
 #
 __author__ = "GhostTalker"
 __copyright__ = "Copyright 2023, The GhostTalker project"
-__version__ = "3.2.4"
-__status__ = "TEST"
+__version__ = "4.0.0"
+__status__ = "DEV"
 
 
 # generic/built-in and other libs
