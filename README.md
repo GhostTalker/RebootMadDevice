@@ -63,7 +63,8 @@ It is possible to use different MAPPER_MODE on each device.
 #### Features and supported hardware:
 ```
 - Reboot every device one times within 24 hours (optional)
-- Flygon support
+- Flygon support only
+- Prometheus metrics
 - support for status LED with WS2812 led stripe
 - support for external status LED via websocket (https://github.com/FabLab-Luenen/McLighting)
 - usable with PowerBoard (Link will follow)
@@ -72,22 +73,22 @@ It is possible to use different MAPPER_MODE on each device.
 - usable with snmp
 - usable with gpio
 - relay mode NC or NO
+- ADB reboot optional
+- timeout can be configured in config.ini
+- next reboot of a device only after defined timeframe
+- IP ban check for PTC
+- Discord Webhook support (without discord_webhook dependency)
+- devided requirements in two parts (general and raspi)
+- client architecture
+- Add waittime for force reboots
+- Add support to restart mapper software instead of reboot
+- manual reboot script for testing (work in progress)
+- Restart for mapper software
 ```
 #### Whats new:
 ```
-- Restart Script for mapper software
-- Add waittime for force reboots
-- Add support to restart mapper software instead of reboot
-- Flygon support
-- based on Flygon database 
-- client architecture
-- timeout can be configured in config.ini
-- next reboot of a device only after defined timeframe
-- Discord Webhook support (without discord_webhook dependency)
-- devided requirements in two parts (general and raspi)
-- ADB reboot optional
-- manual reboot script for testing
-- IP ban check for PTC
+- Flygon API support
+- Prometheus metrics
 ```
 ## License
 See the [LICENSE](https://github.com/GhostTalker/RebootMadDevice/blob/master/LICENSE.md) file for license rights and limitations (MIT).

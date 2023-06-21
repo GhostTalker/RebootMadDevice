@@ -1,5 +1,5 @@
 # Created by .ignore support plugin (hsz.mobi)
 .idea/
 venv/
-config.ini
-devices.json
+config/config.ini
+config/devices.json

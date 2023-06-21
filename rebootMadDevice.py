@@ -5,7 +5,7 @@
 #
 __author__ = "GhostTalker"
 __copyright__ = "Copyright 2023, The GhostTalker project"
-__version__ = "4.0.0"
+__version__ = "4.0.1"
 __status__ = "DEV"
 
 
@@ -20,23 +20,26 @@ import configparser
 import subprocess
 import logging
 import logging.handlers
-from mysql.connector import Error
-from mysql.connector import pooling
+from threading import Thread
+import prometheus_client
 
-
-class rmdItem(object):
+class rmdData(object):
     
     ## read config
     _config = configparser.ConfigParser()
     _rootdir = os.path.dirname(os.path.abspath('config.ini'))
-    _config.read(_rootdir + "/config.ini")
-    _mysqlhost = _config.get("DATABASE", "DB_HOST", fallback='127.0.0.1')
-    _mysqlport = _config.get("DATABASE", "DB_PORT", fallback='3306')
-    _mysqldb = _config.get("DATABASE", "DB_NAME")
-    _mysqluser = _config.get("DATABASE", "DB_USER")
-    _mysqlpass = _config.get("DATABASE", "DB_PASS")
-    _mysqldbtype = _config.get("DATABASE", "DB_TYPE")
-    _mysql_utc = _config.getboolean("DATABASE", "DB_UTC_TIME", fallback=False)
+    _config.read(_rootdir + "/config/config.ini")
+    _api_endpoint_workers = _config.get("FLYGONAPI", "API_ENDPOINT_WORKERS")
+    _api_endpoint_areas = _config.get("FLYGONAPI", "API_ENDPOINT_AREAS")
+    _prometheus_enable = _config.getboolean("PROMETHEUS", "PROMETHEUS_ENABLE", fallback=False)
+    _prometheus_port = _config.get("PROMETHEUS", "PROMETHEUS_PORT", fallback=8000)
+    _prometheus_device_location = _config.get("PROMETHEUS", "PROMETHEUS_DEVICE_LOCATION", fallback="")
+    _sleeptime_between_check = _config.get("REBOOTOPTIONS", "SLEEPTIME_BETWEEN_CHECK", fallback=5)
+    _ip_ban_check_enable = _config.getboolean("IP_BAN_CHECK", "BANCHECK_ENABLE", fallback=False)
+    _ip_ban_check_wh = _config.get("IP_BAN_CHECK", "BANCHECK_WEBHOOK", fallback='')
+    _ip_ban_check_ping = _config.get("IP_BAN_CHECK", "BANPING", fallback=0)
+    _discord_webhook_enable = _config.getboolean("DISCORD", "WEBHOOK", fallback=False)
+    _discord_webhook_url = _config.get("DISCORD", "WEBHOOK_URL", fallback='')
     _try_adb_first = _config.get("REBOOTOPTIONS", "TRY_ADB_FIRST")
     _try_restart_mapper_first = _config.get("REBOOTOPTIONS", "TRY_RESTART_MAPPER_FIRST", fallback='False')
     _sleeptime_between_check = _config.get("REBOOTOPTIONS", "SLEEPTIME_BETWEEN_CHECK", fallback=5)
@@ -57,67 +60,22 @@ class rmdItem(object):
     _led_invert = _config.get("STATUS_LED", "LED_INVERT")
     _led_ws_external = _config.get("STATUS_LED", "LED_WS_EXTERNAL", fallback='')
     _gpio_usage = _config.get("GPIO", "GPIO_USAGE")
-    _ip_ban_check_enable = _config.get("IP_BAN_CHECK", "BANCHECK_ENABLE")
-    _ip_ban_check_wh = _config.get("IP_BAN_CHECK", "BANCHECK_WEBHOOK", fallback='')
-    _ip_ban_check_ping = _config.get("IP_BAN_CHECK", "BANPING", fallback=0)
-    _discord_webhook_enable = _config.getboolean("DISCORD", "WEBHOOK", fallback=False)
-    _discord_webhook_url = _config.get("DISCORD", "WEBHOOK_URL", fallback='')
     _reboot_cycle = _config.get("REBOOT_CYCLE", "REBOOT_CYCLE", fallback='False')
     _reboot_cycle_last_timestamp = int(datetime.datetime.timestamp(datetime.datetime.now()))
     _reboot_cycle_wait_time = _config.get("REBOOT_CYCLE", "REBOOT_CYCLE_WAIT_TIME", fallback=20)
 
+
     def __init__(self):
-        self.createConnectionPool()  
         self.initRMDdata()		
-
-    
-    def createConnectionPool(self):
-        ## create connection pool and connect to MySQL
-        try:
-            self.connection_pool = pooling.MySQLConnectionPool(pool_name="mysql_connection_pool",
-                                                          pool_size=2,
-                                                          pool_reset_session=True,
-                                                          host=self._mysqlhost,
-                                                          port=self._mysqlport,
-                                                          database=self._mysqldb,
-                                                          user=self._mysqluser,
-                                                          password=self._mysqlpass)
-        
-
-            logging.info("Create connection pool: ")
-            logging.debug("Connection Pool Name - " + str(self.connection_pool.pool_name))
-            logging.debug("Connection Pool Size - " + str(self.connection_pool.pool_size))
-        
-            # Get connection object from a pool
-            connection_object = self.connection_pool.get_connection()
-        
-            if connection_object.is_connected():
-                db_Info = connection_object.get_server_info()
-                logging.debug("Connected to MySQL database using connection pool ... MySQL Server version on " + db_Info)
-        
-                cursor = connection_object.cursor()
-                cursor.execute("select database();")
-                record = cursor.fetchone()
-                logging.info("Your connected to database " + str(record))
-        
-        except Error as e:
-            logging.error("Error while connecting to MySQL using Connection pool: " + e)
-        
-        finally:
-            # closing database connection.
-            if connection_object.is_connected():
-                cursor.close()
-                connection_object.close()
-                logging.debug("MySQL connection is closed")
-    
     
     def initRMDdata(self):
         # init dict 
         self._rmd_data = {}
+        self._area_data = {}
     
         # read json file
         logging.debug("Read data from devices.json file.")
-        with open('devices.json') as json_file:
+        with open('config/devices.json') as json_file:
            _jsondata = json.load(json_file) 
     
         # init rmd data in dict
@@ -129,82 +87,409 @@ class rmdItem(object):
                                 'switch_option': _jsondata[device]["SWITCH_OPTION"],
                                 'switch_value': _jsondata[device]["SWITCH_VALUE"],
                                 'led_position': _jsondata[device]["LED_POSITION"],
-                                'worker_status': "",
-                                'idle_status': "",
-                                'last_proto_data': "",
-                                'current_sleep_time': "",
-                                'last_reboot_time': 0,
+                                'device_location': self._prometheus_device_location,
+                                'last_seen': 0,
+                                'last_reboot_time': self.makeTimestamp(),
                                 'reboot_count': 0,
                                 'reboot_nessessary': False,
                                 'reboot_force': False,
                                 'reboot_type': None,
                                 'reboot_forced': False,
-                                'last_reboot_forced_time': None,
-                                'webhook_id': None}
-    	
+                                'last_reboot_forced_time': 0,
+                                'webhook_id': 0,
+                                'acc_username': "",
+                                'start_step': 0,
+                                'end_step': 0,
+                                'step': 0,								
+                                'host': "",
+                                'area_name': "",
+                                'area_id': 0,
+                                'pokemon_mode_worker': 0,
+                                'quest_mode_worker': 0,
+                                'fort_mode_worker': 0								
+								}
+
+        # Prometheus metric for build
+        self.rmd_version_info = prometheus_client.Info('rmd_build_version', 'Description of info')
+        self.rmd_version_info.info({'version': __version__, 'status': __status__})
+        # Prometheus metric for device config
+        self.rmd_metric_device_info = prometheus_client.Gauge('rmd_metric_device_info', 'Device infos from config', ['device', 'device_location', 'mapper_mode', 'ip_address', 'switch_mode', 'led_position']) 
+        for device in self._rmd_data:
+            self.rmd_metric_device_info.labels(device, self._rmd_data[device]['device_location'],self._rmd_data[device]['mapper_mode'], self._rmd_data[device]['ip_address'], self._rmd_data[device]['switch_mode'], self._rmd_data[device]['led_position']).set(1)
+        #Prometheus metric for device
+        self.rmd_metric_device_last_seen = prometheus_client.Gauge('rmd_metric_device_last_seen', 'Device last seen', ['device'])
+        self.rmd_metric_device_last_reboot_time = prometheus_client.Gauge('rmd_metric_device_last_reboot_time', 'Device last reboot time', ['device'])
+        self.rmd_metric_device_reboot_count = prometheus_client.Gauge('rmd_metric_device_reboot_count', 'Device reboot count', ['device'])
+        self.rmd_metric_device_reboot_nessessary = prometheus_client.Gauge('rmd_metric_device_reboot_nessessary', 'Device reboot nessessary', ['device'])
+        self.rmd_metric_device_reboot_force = prometheus_client.Gauge('rmd_metric_device_reboot_force', 'Device need reboot force', ['device'])
+        self.rmd_metric_device_last_reboot_forced_time = prometheus_client.Gauge('rmd_metric_device_last_reboot_forced_time', 'Device last reboot force time', ['device'])
+        self.rmd_metric_device_webhook_id = prometheus_client.Gauge('rmd_metric_device_webhook_id', 'Actual status discord webhook id', ['device'])
+        self.rmd_metric_device_workerarea_id = prometheus_client.Gauge('rmd_metric_device_workerarea_id', 'Actual status discord webhook id', ['device'])
+        self.rmd_metric_device_acc_username = prometheus_client.Gauge('rmd_metric_device_acc_username', 'Actual acc username', ['device','acc_username'])
+        self.rmd_metric_device_start_step = prometheus_client.Gauge('rmd_metric_device_start_step', 'Device working start step', ['device'])
+        self.rmd_metric_device_end_step = prometheus_client.Gauge('rmd_metric_device_end_step', 'Device working end step', ['device'])
+        self.rmd_metric_device_step = prometheus_client.Gauge('rmd_metric_device_step', 'Device actual working step', ['device'])
+        #Prometheus metric for area
+        self.rmd_metric_area_pokemon_worker = prometheus_client.Gauge('rmd_metric_area_pokemon_worker', 'Area worker pokemon mode count', ['area_id', 'area_name'])
+        self.rmd_metric_area_quest_worker = prometheus_client.Gauge('rmd_metric_area_quest_worker', 'Area worker quest mode count', ['area_id', 'area_name'])
+        self.rmd_metric_area_fort_worker = prometheus_client.Gauge('rmd_metric_area_fort_worker', 'Area worker fort mode count', ['area_id', 'area_name'])
+
     
     def getDeviceStatusData(self):
-        # get device status data
-
-        if self._mysqldbtype == "MAD":
-            logging.debug("DB Type is MAD.")
-            select_device_status_data = (
-                    "SELECT s.name, t.lastProtoDateTime, t.currentSleepTime, t.idle, a.name  FROM trs_status t, settings_device s, settings_area a where s.device_id = t.device_id and t.area_id = a.area_id; "
-                      )        
-        elif self._mysqldbtype == "RDM":
-            logging.debug("DB Type is RDM.")
-            select_device_status_data = (
-                    "SELECT d.uuid, d.last_seen, d.instance_name  FROM device d;"
-                      )
-        else:
-            logging.error("DB Type not known. Please check config")
-
+        # Get device data from flygon api
         try:
-            logging.debug("Get db connection from connection pool.")
-            connection_object = self.connection_pool.get_connection()
-        
-            # Get connection object from a pool
-            if connection_object.is_connected():
-                logging.debug("MySQL pool connection is open.")
-                # Executing the SQL command
-                cursor = connection_object.cursor()
-                cursor.execute(select_device_status_data)
-                # get all records
-                records = cursor.fetchall()
-                logging.debug("Select status data from database and update rmd data.")
-                for row in records:
-                    if self._mysqldbtype == "MAD":
-                        try:
-                            lastProtoDateTime = datetime.datetime.strptime(str(row[1]),"%Y-%m-%d %H:%M:%S")
-                            if self._mysql_utc:
-                                self._rmd_data[row[0]]['last_proto_data'] = datetime.datetime.timestamp(lastProtoDateTime.replace(tzinfo=datetime.timezone.utc))
-                            else:
-                                self._rmd_data[row[0]]['last_proto_data'] = datetime.datetime.timestamp(lastProtoDateTime)
-                            self._rmd_data[row[0]]['current_sleep_time'] = row[2]
-                            self._rmd_data[row[0]]['idle_status'] = row[3]
-                            self._rmd_data[row[0]]['worker_status'] = row[4]
-                        except:
-                            logging.debug("Device {} not configured. Ignoring data.".format(row[0]))
-                    elif self._mysqldbtype == "RDM":	
-                        try:
-                            self._rmd_data[row[0]]['last_proto_data'] = row[1]
-                            self._rmd_data[row[0]]['current_sleep_time'] = 0
-                            self._rmd_data[row[0]]['idle_status'] = 0
-                            self._rmd_data[row[0]]['worker_status'] = row[2]
-                        except:
-                            logging.debug("Device {} not configured. Ignoring data.".format(row[0]))
-                    else:
-                        logging.error("DB Type not known. Please check config")
+            logging.debug("Get device data from flygon api")
+            response = requests.get(self._api_endpoint_workers)
+            deviceStatusData = response.json()
 
-        except Exception as e:
-            logging.error("Error get connection from Connection pool ", e)
-        
-        finally:
-            # closing database connection.
-            if connection_object.is_connected():
-                cursor.close()
-                connection_object.close()
-                logging.debug("MySQL pool connection is closed.")
+        except:
+            logging.error("Get device data from flygon api failed.")
+            return "noDeviceStatusData"			
+
+        return deviceStatusData
+
+    def getAreaData(self):
+        # Get area data from flygon api
+        try:
+            logging.debug("Get area data from flygon api")
+            response = requests.get(self._api_endpoint_areas)
+            areaData = response.json()
+
+            # Prepare data for prometheus
+            for area in areaData['data']:
+                self._area_data[area['id']]= {'name': area['name'],
+                                              'pokemon_mode_workers': area['pokemon_mode']['workers'],
+                                              'quest_mode_workers': area['quest_mode']['workers'],
+                                              'fort_mode_workers': area['pokemon_mode']['workers']}
+
+        except:
+            logging.error("Get area data from flygon api failed.")
+            return "noAreaData"			
+
+        return areaData
+
+    def check_client(self, device, deviceStatusData, areaData):
+        uuid = device
+        self._device_origin = uuid
+
+        # Update data from deviceStatusData in _rmd_data set
+        if any(device['uuid'] == uuid for device in deviceStatusData['data']):
+            device_data = next(device for device in deviceStatusData['data'] if device['uuid'] == uuid)
+            self._rmd_data[uuid]['last_seen'] = device_data['last_seen']
+            self._rmd_data[uuid]['acc_username'] = device_data['username']
+            for area in areaData['data']:
+                if area['id'] == device_data['area_id']: 
+                    self._rmd_data[uuid]['area_name'] = area['name']
+            self._rmd_data[uuid]['area_id'] = device_data['area_id']
+            self._rmd_data[uuid]['start_step'] = device_data['start_step']			
+            self._rmd_data[uuid]['end_step'] = device_data['end_step']			
+            self._rmd_data[uuid]['step'] = device_data['step']
+            self._rmd_data[uuid]['host'] = device_data['host']
+
+            # Analyze DATA of device
+            logging.debug("Checking device {} for nessessary reboot.".format(self._device_origin))
+    
+            if self.calc_past_min_from_now(self._rmd_data[self._device_origin]['last_seen']) > int(self._proto_timeout):
+    
+                if self.calc_past_min_from_now(self._rmd_data[self._device_origin]['last_reboot_time']) < int(self._reboot_waittime):
+                    self._rmd_data[self._device_origin]['reboot_nessessary'] = 'rebooting'
+                    ## set led status warn if enabled
+                    try:
+                        if eval(self._led_enable):
+                            logging.debug("Set status LED to warning for device {}".format(self._device_origin))
+                            self.setStatusLED(self._device_origin, 'warn')
+                    except:
+                        logging.error("Error setting status LED for device {} ".format(self._device_origin))
+    
+                else:						
+                    self._rmd_data[self._device_origin]['reboot_nessessary'] = True
+                    if self.calc_past_min_from_now(self._rmd_data[self._device_origin]['last_seen']) > int(self._force_reboot_timeout) or eval(self._try_adb_first) is False: 
+                        self._rmd_data[self._device_origin]['reboot_force'] = True
+    
+                    ## set led status critical if enabled
+                    try:
+                        if eval(self._led_enable):
+                            logging.debug("Set status LED to critical for device {}".format(self._device_origin))
+                            self.setStatusLED(device, 'crit')
+                    except:
+                        logging.error("Error setting status LED for device: {} ".format(self._device_origin))
+    
+            else:
+                self._rmd_data[self._device_origin]['reboot_nessessary'] = False
+                self._rmd_data[self._device_origin]['reboot_force'] = False
+                self._rmd_data[self._device_origin]['reboot_count'] = 0
+                self._rmd_data[self._device_origin]['reboot_type'] = None
+    
+                # clear webhook_id after fixed message
+                if self._rmd_data[device]['webhook_id'] != 0:
+                    self.discord_message(device, fixed=True)
+                    self._rmd_data[self._device_origin]['webhook_id'] = 0  
+    
+                ## set led status ok if enabled
+                try:
+                    if eval(self._led_enable):
+                        logging.debug("Set status LED to ok for device {}".format(self._device_origin))
+                        self.setStatusLED(self._device_origin, 'ok')
+                except:
+                    logging.error("Error setting status LED for device {} ".format(self._device_origin))
+    
+                ## Check for daily PowerCycle
+                if eval(self._reboot_cycle):
+                    logging.debug("Checking if devices {} was rebooted within 24h.".format(self._device_origin))
+                    if int(self._rmd_data[self._device_origin]['last_reboot_time']) < int(datetime.datetime.timestamp(datetime.datetime.now() - datetime.timedelta(hours = 24))):
+                        logging.info("Last reboot older than 24h. Rebooting!")
+                        self._rmd_data[self._device_origin]['reboot_nessessary'] = True                    
+
+
+    def check_clients(self):
+        logging.info(f'Checking all clients...')
+    
+        # API-call for device status
+        deviceStatusData = self.getDeviceStatusData()
+        # API-call for area names
+        areaData = self.getAreaData()
+    
+        threads = []
+        for device in self._rmd_data:
+            thread = Thread(target=self.check_client, args=(device, deviceStatusData, areaData))
+            thread.start()
+            threads.append(thread)
+    
+        for thread in threads:
+            thread.join()
+
+
+    def check_rebooted_devices(self):
+        rebootedDevicedList = []
+        logging.debug("Find rebooted devices for information and update discord message.")	
+        logging.info("")
+        logging.info("---------------------------------------------")
+        logging.info("Devices are rebooted. Waiting to come online:")	
+        logging.info("---------------------------------------------")
+        logging.info("")
+
+        for device in list(self._rmd_data):
+            if str(self._rmd_data[device]['reboot_nessessary']) == 'rebooting': 
+                rebootedDevicedList.append({'device': device, 'worker_status': self._rmd_data[device]['worker_status'], 'last_seen': self.timestamp_to_readable_datetime(self._rmd_data[device]['last_seen']), 'offline_minutes': self.calc_past_min_from_now(self._rmd_data[device]['last_seen']), 'count': self._rmd_data[device]['reboot_count'], 'last_reboot_time': self.timestamp_to_readable_datetime(self._rmd_data[device]['last_reboot_time']), 'reboot_ago_min': self.calc_past_min_from_now(self._rmd_data[device]['last_reboot_time']), 'type': self._rmd_data[device]['reboot_type']})
+
+                # Update no_data time and existing Discord messages
+                if self._rmd_data[device]['webhook_id'] != 0:
+                        logging.info('Update Discord message')
+                        self.discord_message(device)
+
+        if not rebootedDevicedList:
+            self.printTable([{'device': '-','worker_status': '-','last_seen': '-','offline_minutes': '-','count': '-','last_reboot_time': '-','reboot_ago_min': '-','type': '-'}], ['device','worker_status','last_seen','offline_minutes','count','last_reboot_time','reboot_ago_min','type'])
+            logging.info("")
+        else:
+            self.printTable(rebootedDevicedList, ['device','worker_status','last_seen','offline_minutes','count','last_reboot_time','reboot_ago_min','type'])
+            logging.info("")
+
+
+    def reboot_bad_devices(self):
+	
+        ##checking for bad devices
+        badDevicedList = []
+        logging.debug("Find bad devices and reboot them.")	
+        logging.info("")
+        logging.info("---------------------------------------------")
+        logging.info("Devices for reboot:")	
+        logging.info("---------------------------------------------")
+        logging.info("")
+
+        for device in list(self._rmd_data):
+            if str(self._rmd_data[device]['reboot_nessessary']) == 'True':
+                badDevicedList.append({'device': device, 'worker_status': self._rmd_data[device]['worker_status'], 'last_seen': self.timestamp_to_readable_datetime(self._rmd_data[device]['last_seen']), 'offline_minutes': self.calc_past_min_from_now(self._rmd_data[device]['last_seen']), 'count': self._rmd_data[device]['reboot_count'], 'reboot_nessessary': self._rmd_data[device]['reboot_nessessary'], 'force': self._rmd_data[device]['reboot_force']})
+
+        if not badDevicedList:
+            self.printTable([{'device': '-','worker_status': '-','last_seen': '-','offline_minutes': '-','count': '-','reboot_nessessary': '-', 'force': '-'}], ['device','worker_status','last_seen','offline_minutes','count','reboot_nessessary','force'])
+            logging.info("")
+        else:
+            self.printTable(badDevicedList, ['device','worker_status','last_seen','offline_minutes','count','reboot_nessessary','force'])
+            logging.info("")
+
+        ## reboot in threads
+        reboot_threads = []
+
+        for badDevice in badDevicedList:
+            reboot_thread = Thread(target=self.doRebootDevice, args=(badDevice["device"]))
+            reboot_thread.start()
+            reboot_threads.append(thread)
+    
+        for reboot_thread in reboot_threads:
+            reboot_thread.join()
+
+            
+    def doRebootDevice(self, DEVICE_ORIGIN_TO_REBOOT):
+        try_counter = 2
+        counter = 0
+        # Create discord message
+        if self._discord_webhook_enable:
+            self.discord_message(DEVICE_ORIGIN_TO_REBOOT)
+
+        logging.info("Origin to reboot is: {}".format(DEVICE_ORIGIN_TO_REBOOT))
+        logging.info("Force option is: {}".format(self._rmd_data[DEVICE_ORIGIN_TO_REBOOT]['reboot_force']))
+        logging.debug("Rebootcount is: {}".format(self._rmd_data[DEVICE_ORIGIN_TO_REBOOT]['reboot_count']))
+
+        self._rmd_data[DEVICE_ORIGIN_TO_REBOOT]['reboot_count'] = self._rmd_data[DEVICE_ORIGIN_TO_REBOOT]['reboot_count'] + 1
+        self._rmd_data[DEVICE_ORIGIN_TO_REBOOT]['last_reboot_time'] = self.makeTimestamp()
+
+        if self._rmd_data[DEVICE_ORIGIN_TO_REBOOT]['reboot_force'] and self.calc_past_min_from_now(self._rmd_data[DEVICE_ORIGIN_TO_REBOOT]['last_reboot_forced_time']) > int(self._force_reboot_waittime):
+            self._rmd_data[DEVICE_ORIGIN_TO_REBOOT]['last_reboot_forced_time'] = self.makeTimestamp()
+            self.call_reboot_device_via_power(DEVICE_ORIGIN_TO_REBOOT)
+            return
+        while counter < try_counter:
+            if self._rmd_data[DEVICE_ORIGIN_TO_REBOOT]['ip_address'] in adb_tools.adb_tools.list_adb_connected_devices(self._adb_path,self._adb_port):
+                logging.debug("Device {} already connected".format(DEVICE_ORIGIN_TO_REBOOT))
+                if eval(self._try_restart_mapper_first):
+                    logging.info("Try to restart {} on Device {}".format(self._rmd_data[DEVICE_ORIGIN_TO_REBOOT]['mapper_mode'],DEVICE_ORIGIN_TO_REBOOT))
+                    return_code = reboot.reboot.restart_mapper_sw(self._adb_path, self._adb_port, self._rmd_data[DEVICE_ORIGIN_TO_REBOOT]['ip_address'], self._rootdir, self._rmd_data[DEVICE_ORIGIN_TO_REBOOT]['mapper_mode'])
+                    if return_code == 0:
+                        logging.info("Restart Mapper on Device {} was successfull.".format(DEVICE_ORIGIN_TO_REBOOT))
+                        self._rmd_data[DEVICE_ORIGIN_TO_REBOOT]['reboot_forced'] = False
+                        self._rmd_data[DEVICE_ORIGIN_TO_REBOOT]['reboot_type'] = "MAPPER"
+                        return
+                    else:
+                        logging.info("Execute of restart Mapper on Device {} was not successfull. Try reboot device now.".format(DEVICE_ORIGIN_TO_REBOOT))
+
+                    logging.info("rebooting Device {}. Please wait".format(DEVICE_ORIGIN_TO_REBOOT))
+                    return_code = reboot.reboot.adb_reboot(self._adb_path, self._adb_port, self._rmd_data[DEVICE_ORIGIN_TO_REBOOT]['ip_address'])
+                    if return_code == 0:
+                        logging.info("Restart via adb of Device {} was successfull.".format(DEVICE_ORIGIN_TO_REBOOT))
+                        self._rmd_data[DEVICE_ORIGIN_TO_REBOOT]['reboot_forced'] = False
+                        self._rmd_data[DEVICE_ORIGIN_TO_REBOOT]['reboot_type'] = "ADB"
+                    else:
+                        logging.warning("rebooting Device {} via ADB not possible. Using PowerSwitch...".format(DEVICE_ORIGIN_TO_REBOOT))
+                        self.call_reboot_device_via_power(DEVICE_ORIGIN_TO_REBOOT)                    
+                return
+                break;
+            else:
+                logging.debug("Device {} not connected".format(DEVICE_ORIGIN_TO_REBOOT))
+                adb_tools.adb_tools.connect_device(self._adb_path, self._rmd_data[DEVICE_ORIGIN_TO_REBOOT]['ip_address'])
+                counter = counter + 1
+        else:
+            self.call_reboot_device_via_power(DEVICE_ORIGIN_TO_REBOOT)
+            return
+
+
+    def call_reboot_device_via_power(self, DEVICE_ORIGIN_TO_REBOOT):
+        ## read powerSwitch config
+        powerSwitchMode = self._rmd_data[DEVICE_ORIGIN_TO_REBOOT]['switch_mode']
+        powerSwitchOption = self._rmd_data[DEVICE_ORIGIN_TO_REBOOT]['switch_option']
+        powerSwitchValue = self._rmd_data[DEVICE_ORIGIN_TO_REBOOT]['switch_value']
+
+        ## setting data for webhook
+        self._rmd_data[DEVICE_ORIGIN_TO_REBOOT]['reboot_forced'] = True
+        self._rmd_data[DEVICE_ORIGIN_TO_REBOOT]['reboot_type'] = powerSwitchMode
+
+        reboot.reboot.reboot_device_via_power(powerSwitchMode, powerSwitchOption, powerSwitchValue)
+
+
+    def create_prometheus_metrics(self):
+        logging.info(f'create metrics for prometheus...')
+       
+        for device in self._rmd_data:
+            self.rmd_metric_device_last_seen.labels(device).set(self._rmd_data[device]['last_seen'])
+            self.rmd_metric_device_last_reboot_time.labels(device).set(self._rmd_data[device]['last_reboot_time'])
+            self.rmd_metric_device_reboot_count.labels(device).set(self._rmd_data[device]['reboot_count'])
+            if self._rmd_data[device]['reboot_nessessary']:
+                self.rmd_metric_device_reboot_nessessary.labels(device).set(1)
+            else:
+                self.rmd_metric_device_reboot_nessessary.labels(device).set(0)
+            if self._rmd_data[device]['reboot_force']:
+                self.rmd_metric_device_reboot_force.labels(device).set(1)
+            else:
+                self.rmd_metric_device_reboot_force.labels(device).set(0)
+            self.rmd_metric_device_last_reboot_forced_time.labels(device).set(self._rmd_data[device]['last_reboot_forced_time'])
+            self.rmd_metric_device_webhook_id.labels(device).set(self._rmd_data[device]['webhook_id'])
+            self.rmd_metric_device_workerarea_id.labels(device).set(self._rmd_data[device]['area_id'])	
+            self.rmd_metric_device_acc_username.labels(device, self._rmd_data[device]['acc_username'] ).set(1)
+            self.rmd_metric_device_start_step.labels(device).set(self._rmd_data[device]['start_step'])	
+            self.rmd_metric_device_end_step.labels(device).set(self._rmd_data[device]['end_step'])
+            self.rmd_metric_device_step.labels(device).set(self._rmd_data[device]['step'])	
+
+        for area in self._area_data:
+            self.rmd_metric_area_pokemon_worker.labels(area ,self._area_data[area]['name'] ).set(self._area_data[area]['pokemon_mode_workers'])
+            self.rmd_metric_area_quest_worker.labels(area ,self._area_data[area]['name'] ).set(self._area_data[area]['quest_mode_workers'])
+            self.rmd_metric_area_fort_worker.labels(area ,self._area_data[area]['name'] ).set(self._area_data[area]['fort_mode_workers'])
+
+
+    def discord_message(self, device_origin, fixed=False):
+        if not self._discord_webhook_enable:
+            return
+
+        # create data for webhook
+        logging.info('Start Webhook for device ' + device_origin )
+
+        now = datetime.datetime.utcnow()
+        data = {
+          "content": "",
+          "username": "Alert!",
+          "avatar_url": "https://github.com/GhostTalker/icons/blob/main/rmd/messagebox_critical_256.png?raw=true",
+          "embeds": [
+            {
+              "title": "Device restarted!", 
+              "color": 16711680,
+              "author": {
+                "name": "RebootMadDevice",
+                "url": "https://github.com/GhostTalker/RebootMadDevice",
+                "icon_url": "https://github.com/GhostTalker/icons/blob/main/Ghost/GhostTalker.jpg?raw=true"
+              },
+               "thumbnail": {
+                   "url": "https://github.com/GhostTalker/icons/blob/main/rmd/reboot.jpg?raw=true"
+               },
+               "fields": [
+                {
+                  "name": "Device",
+                  "value": device_origin,
+                  "inline": "true"
+                },
+                {
+                  "name": "Reboot",
+                  "value": self._rmd_data[device_origin]['reboot_type'],
+                  "inline": "true"
+                },
+                {
+                  "name": "Force",
+                  "value": self._rmd_data[device_origin]['reboot_forced'],
+                  "inline": "true"
+                }
+              ]
+            }
+          ]
+        }
+        # add timestamp
+        data["embeds"][0]["timestamp"] = str(now)
+
+        # send webhook
+        logging.debug('data to send with webhook:')
+        logging.debug(data)
+        logging.debug(self._rmd_data[device_origin]['webhook_id'])
+
+        if self._rmd_data[device_origin]['webhook_id'] == 0:
+            data["embeds"][0]["description"] = f"`{device_origin}` did not send useful data for more than `{self.calc_past_min_from_now(self._rmd_data[device_origin]['last_seen'])}` minutes!\nReboot count: `{self._rmd_data[device_origin]['reboot_count']}`"
+            try:
+                result = requests.post(self._discord_webhook_url, json = data, params={"wait": True})
+                result.raise_for_status()
+                answer = result.json()
+                logging.debug(answer)
+                self._rmd_data[device_origin]["webhook_id"] = answer["id"]
+                logging.debug(self._rmd_data[device_origin]["webhook_id"])
+            except requests.exceptions.RequestException as err:
+                logging.error(err)
+        else:
+            logging.debug('parameter fixed is: ' + str(fixed))
+            if not fixed:
+                data["embeds"][0]["description"] = f"`{device_origin}` did not send useful data for more than `{self.calc_past_min_from_now(self._rmd_data[device_origin]['last_seen'])}` minutes!\nReboot count: `{self._rmd_data[device_origin]['reboot_count']}`\nFixed :x:"
+            else:
+                data["embeds"][0]["description"] = f"`{device_origin}` did not send useful data for more than `{self.calc_past_min_from_now(self._rmd_data[device_origin]['last_seen'])}` minutes!\nReboot count: `{self._rmd_data[device_origin]['reboot_count']}`\nFixed :white_check_mark:"
+
+            try:
+                result = requests.patch(self._discord_webhook_url + "/messages/" + str(self._rmd_data[device_origin]["webhook_id"]), json = data)
+                result.raise_for_status()
+            except requests.exceptions.RequestException as err:
+                logging.error(err)
+
+        return result.status_code
 
 
     def initiate_led(self):
@@ -271,158 +556,6 @@ class rmdItem(object):
             ws.close()  # close websocket
 
 
-    ## IP ban check
-    def check_ipban(self):
-        banned = True
-        wh_send = False
-        while banned: 
-            logging.info("Checking PTC Login Servers...")
-            try:
-                result = requests.head('https://sso.pokemon.com/sso/login')
-                result.raise_for_status()
-            except requests.exceptions.RequestException as err:
-                logging.info(f"PTC Servers are not reachable! Error: {err}")
-                logging.info("Waiting 5 minutes and trying again")
-                time.sleep(300)
-                continue
-            if result.status_code != 200:
-                logging.info("IP is banned by PTC, waiting 5 minutes and trying again")
-                # Only send a message once per ban and only when a webhook is set
-                if not wh_send and self._ip_ban_check_wh:
-                    unbantime = datetime.datetime.now() + datetime.timedelta(hours=3)
-                    data = {
-                        "username": "Alert!",
-                        "avatar_url": "https://github.com/GhostTalker/icons/blob/main/rmd/messagebox_critical_256.png?raw=true",
-                        "content": f"<@{self._ip_ban_check_ping}> IP address is currently banned by PTC! \nApproximate remaining time until unban: <t:{int(unbantime.timestamp())}:R> ({unbantime.strftime('%H:%M')})",
-                    }
-                    try:
-                        result = requests.post(self._ip_ban_check_wh, json=data)
-                        result.raise_for_status()
-                    except requests.exceptions.RequestException as err:
-                        logging.info(err)
-                wh_send = True
-                time.sleep(300)
-                continue
-            else:
-                logging.info("IP is not banned by PTC, continuing...")
-                banned = False
-                wh_send = False
-        
-        banned = True
-        wh_send = False
-        while banned: 
-            logging.info("Checking MAD Backend Login Servers...")
-            try:
-                result = requests.head('https://auth.maddev.eu')
-                result.raise_for_status()
-            except requests.exceptions.RequestException as err:
-                logging.info(f"MAD Backend Servers are not reachable! Error: {err}")
-                logging.info("Waiting 5 minutes and trying again")
-                time.sleep(300)
-                continue
-            if result.status_code != 200:
-                logging.info("IP is banned by MAD, waiting 5 minutes and trying again")
-                # Only send a message once per ban and only when a webhook is set
-                if not wh_send and rmdItem._ip_ban_check_wh:
-                    unbantime = datetime.datetime.now() + datetime.timedelta(hours=3)
-                    data = {
-                        "username": "Alert!",
-                        "avatar_url": "https://github.com/GhostTalker/icons/blob/main/rmd/messagebox_critical_256.png?raw=true",
-                        "content": f"<@{rmdItem._ip_ban_check_ping}> IP address is currently banned by MAD! \nApproximate remaining time until unban: <t:{int(unbantime.timestamp())}:R> ({unbantime.strftime('%H:%M')})",
-                    }
-                    try:
-                        result = requests.post(rmdItem._ip_ban_check_wh, json=data)
-                        result.raise_for_status()
-                    except requests.exceptions.RequestException as err:
-                        logging.info(err)
-                wh_send = True
-                time.sleep(300)
-                continue
-            else:
-                logging.info("IP is not banned by MAD, continuing...")
-                banned = False
-                wh_send = False
-    
-    
-    def discord_message(self, device_origin, fixed=False):
-        if not self._discord_webhook_enable:
-            return
-
-        # create data for webhook
-        logging.info('Start Webhook for device ' + device_origin )
-
-        now = datetime.datetime.utcnow()
-        data = {
-          "content": "",
-          "username": "Alert!",
-          "avatar_url": "https://github.com/GhostTalker/icons/blob/main/rmd/messagebox_critical_256.png?raw=true",
-          "embeds": [
-            {
-              "title": "Device restarted!", 
-              "color": 16711680,
-              "author": {
-                "name": "RebootMadDevice",
-                "url": "https://github.com/GhostTalker/RebootMadDevice",
-                "icon_url": "https://github.com/GhostTalker/icons/blob/main/Ghost/GhostTalker.jpg?raw=true"
-              },
-               "thumbnail": {
-                   "url": "https://github.com/GhostTalker/icons/blob/main/rmd/reboot.jpg?raw=true"
-               },
-               "fields": [
-                {
-                  "name": "Device",
-                  "value": device_origin,
-                  "inline": "true"
-                },
-                {
-                  "name": "Reboot",
-                  "value": self._rmd_data[device_origin]['reboot_type'],
-                  "inline": "true"
-                },
-                {
-                  "name": "Force",
-                  "value": self._rmd_data[device_origin]['reboot_forced'],
-                  "inline": "true"
-                }
-              ]
-            }
-          ]
-        }
-        # add timestamp
-        data["embeds"][0]["timestamp"] = str(now)
-
-        # send webhook
-        logging.debug('data to send with webhook:')
-        logging.debug(data)
-        logging.debug(self._rmd_data[device_origin]['webhook_id'])
-
-        if self._rmd_data[device_origin]['webhook_id'] is None:
-            data["embeds"][0]["description"] = f"`{device_origin}` did not send useful data for more than `{self.calc_past_min_from_now(self._rmd_data[device_origin]['last_proto_data'])}` minutes!\nReboot count: `{self._rmd_data[device_origin]['reboot_count']}`"
-            try:
-                result = requests.post(self._discord_webhook_url, json = data, params={"wait": True})
-                result.raise_for_status()
-                answer = result.json()
-                logging.debug(answer)
-                self._rmd_data[device_origin]["webhook_id"] = answer["id"]
-                logging.debug(self._rmd_data[device_origin]["webhook_id"])
-            except requests.exceptions.RequestException as err:
-                logging.error(err)
-        else:
-            logging.debug('parameter fixed is: ' + str(fixed))
-            if not fixed:
-                data["embeds"][0]["description"] = f"`{device_origin}` did not send useful data for more than `{self.calc_past_min_from_now(self._rmd_data[device_origin]['last_proto_data'])}` minutes!\nReboot count: `{self._rmd_data[device_origin]['reboot_count']}`\nFixed :x:"
-            else:
-                data["embeds"][0]["description"] = f"`{device_origin}` did not send useful data for more than `{self.calc_past_min_from_now(self._rmd_data[device_origin]['last_proto_data'])}` minutes!\nReboot count: `{self._rmd_data[device_origin]['reboot_count']}`\nFixed :white_check_mark:"
-
-            try:
-                result = requests.patch(self._discord_webhook_url + "/messages/" + self._rmd_data[device_origin]["webhook_id"], json = data)
-                result.raise_for_status()
-            except requests.exceptions.RequestException as err:
-                logging.error(err)
-
-        return result.status_code
-
-
     ## time calculations and transformation
     def calc_past_min_from_now(self, timestamp):
         """ calculate time between now and given timestamp """
@@ -460,261 +593,6 @@ class rmdItem(object):
        for item in myList: logging.info(formatStr.format(*item))
 
 
-    def doRebootDevice(self, DEVICE_ORIGIN_TO_REBOOT):
-        try_counter = 2
-        counter = 0
-
-        logging.info("Origin to reboot is: {}".format(DEVICE_ORIGIN_TO_REBOOT))
-        logging.info("Force option is: {}".format(self._rmd_data[DEVICE_ORIGIN_TO_REBOOT]['reboot_force']))
-        logging.debug("Rebootcount is: {}".format(self._rmd_data[DEVICE_ORIGIN_TO_REBOOT]['reboot_count']))
-
-        self._rmd_data[DEVICE_ORIGIN_TO_REBOOT]['reboot_count'] = self._rmd_data[DEVICE_ORIGIN_TO_REBOOT]['reboot_count'] + 1
-        self._rmd_data[DEVICE_ORIGIN_TO_REBOOT]['last_reboot_time'] = self.makeTimestamp()
-
-        if self._rmd_data[DEVICE_ORIGIN_TO_REBOOT]['reboot_force'] and self.calc_past_min_from_now(self._rmd_data[DEVICE_ORIGIN_TO_REBOOT]['last_reboot_forced_time']) > int(self._force_reboot_waittime):
-            self._rmd_data[DEVICE_ORIGIN_TO_REBOOT]['last_reboot_forced_time'] = self.makeTimestamp()
-            self.reboot_device_via_power(DEVICE_ORIGIN_TO_REBOOT)
-            return
-        while counter < try_counter:
-            if self._rmd_data[DEVICE_ORIGIN_TO_REBOOT]['ip_address'] in self.list_adb_connected_devices():
-                logging.debug("Device {} already connected".format(DEVICE_ORIGIN_TO_REBOOT))
-                self.reboot_device(DEVICE_ORIGIN_TO_REBOOT)
-                return
-                break;
-            else:
-                logging.debug("Device {} not connected".format(DEVICE_ORIGIN_TO_REBOOT))
-                self.connect_device(DEVICE_ORIGIN_TO_REBOOT)
-                counter = counter + 1
-        else:
-            self.reboot_device_via_power(DEVICE_ORIGIN_TO_REBOOT)
-            return
-
-
-    def list_adb_connected_devices(self):
-        cmd = "{}/adb devices | /bin/grep {}".format(self._adb_path, self._adb_port)
-        try:
-            connectedDevices = subprocess.check_output([cmd], shell=True)
-            connectedDevices = str(connectedDevices).replace("b'", "").replace("\\n'", "").replace(":5555", "").replace(
-                "\\n", ",").replace("\\tdevice", "").split(",")
-        except subprocess.CalledProcessError:
-            connectedDevices = ()
-        return connectedDevices
-
-
-    def connect_device(self, DEVICE_ORIGIN_TO_REBOOT):
-        cmd = "{}/adb connect {}".format(self._adb_path, self._rmd_data[DEVICE_ORIGIN_TO_REBOOT]['ip_address'])
-        try:
-            subprocess.check_output([cmd], shell=True)
-        except subprocess.CalledProcessError:
-            logging.info("Connection via adb failed")
-        # Wait for 2 seconds
-        time.sleep(2)
-
-
-    def reboot_device(self, DEVICE_ORIGIN_TO_REBOOT):
-        if eval(self._try_restart_mapper_first):
-            logging.info("Try to restart {} on Device {}".format(self._rmd_data[DEVICE_ORIGIN_TO_REBOOT]['mapper_mode'],DEVICE_ORIGIN_TO_REBOOT))
-            try:
-                ADBLOC="{}/adb".format(self._adb_path)
-                DEVICELOC="{}:{}".format(self._rmd_data[DEVICE_ORIGIN_TO_REBOOT]['ip_address'], self._adb_port)
-                MAPPERSCRIPT="{}/restart{}.sh".format(self._rootdir, self._rmd_data[DEVICE_ORIGIN_TO_REBOOT]['mapper_mode'] )
-                logging.debug("Mapper-Script command: {}".format(MAPPERSCRIPT))
-                subprocess.Popen([MAPPERSCRIPT, ADBLOC, DEVICELOC])
-                logging.info("Restart Mapper on Device {} was successfull.".format(DEVICE_ORIGIN_TO_REBOOT))
-                self._rmd_data[DEVICE_ORIGIN_TO_REBOOT]['reboot_forced'] = False
-                self._rmd_data[DEVICE_ORIGIN_TO_REBOOT]['reboot_type'] = "MAPPER"
-                return
-            except:			
-                logging.info("Execute of restart Mapper on Device {} was not successfull. Try reboot device now.".format(DEVICE_ORIGIN_TO_REBOOT))
-
-        #cmd = "{}/adb -s {}:{} reboot".format(self.adb_path, self.device_list[DEVICE_ORIGIN_TO_REBOOT], self.adb_port)
-        logging.info("rebooting Device {}. Please wait".format(DEVICE_ORIGIN_TO_REBOOT))
-        try:
-            #subprocess.check_output([cmd], shell=True)
-            ADBLOC="{}/adb".format(self._adb_path)
-            DEVICELOC="{}:{}".format(self._rmd_data[DEVICE_ORIGIN_TO_REBOOT]['ip_address'], self._adb_port)
-            subprocess.Popen([ADBLOC, '-s', DEVICELOC, 'reboot'])
-            self._rmd_data[DEVICE_ORIGIN_TO_REBOOT]['reboot_forced'] = False
-            self._rmd_data[DEVICE_ORIGIN_TO_REBOOT]['reboot_type'] = "ADB"
-            return
-        except subprocess.CalledProcessError:
-            logging.warning("rebooting Device {} via ADB not possible. Using PowerSwitch...".format(DEVICE_ORIGIN_TO_REBOOT))
-            self.reboot_device_via_power(DEVICE_ORIGIN_TO_REBOOT)
-
-
-    def reboot_device_via_power(self, DEVICE_ORIGIN_TO_REBOOT):
-        ## read powerSwitch config
-        powerSwitchMode = self._rmd_data[DEVICE_ORIGIN_TO_REBOOT]['switch_mode']
-        powerSwitchOption = self._rmd_data[DEVICE_ORIGIN_TO_REBOOT]['switch_option']
-        powerSwitchValue = self._rmd_data[DEVICE_ORIGIN_TO_REBOOT]['switch_value']
-
-        ## setting data for webhook
-        self._rmd_data[DEVICE_ORIGIN_TO_REBOOT]['reboot_forced'] = True
-        self._rmd_data[DEVICE_ORIGIN_TO_REBOOT]['reboot_type'] = powerSwitchMode
-
-        ## HTML 
-        if powerSwitchMode == 'HTML':
-            logging.debug("PowerSwitch with HTML starting.")
-            poweron = powerSwitchValue.split(";")[0]
-            poweroff = powerSwitchValue.split(";")[1]
-            logging.info("turn HTTP PowerSwitch off")
-            requests.get(poweroff)
-            time.sleep(int(self._off_on_sleep))
-            logging.info("turn HTTP PowerSwitch on")
-            requests.get(poweron)
-            logging.debug("PowerSwitch with HTML done.")
-            return        
-
-        ## GPIO 
-        elif powerSwitchMode == 'GPIO':
-            logging.debug("PowerSwitch with GPIO starting.")
-            relay_mode = powerSwitchOption.split(";")[0]
-            cleanup_mode = powerSwitchOption.split(";")[1]
-            gpionr = int(powerSwitchValue)
-            logging.info("turn GPIO PowerSwitch off")
-            GPIO.setwarnings(False)
-            GPIO.setmode(GPIO.BCM)
-
-            try:
-               eval(cleanup_mode)
-            except:
-               cleanup_mode = "False"
-            
-            if eval(cleanup_mode):
-                GPIO.cleanup()
-                logging.info("GPIO cleanup done!")
-
-            if relay_mode == 'NO':
-                logging.debug("Relay_mode: " + relay_mode)
-                # GPIO.setup(gpionr, GPIO.OUT, initial=GPIO.HIGH)
-                logging.debug("setting GPIO setup to: GPIO.OUT")
-                GPIO.setup(gpionr, GPIO.OUT)
-                logging.debug("setting GPIO output to: GPIO.HIGH")
-                GPIO.output(gpionr, GPIO.HIGH)
-            elif relay_mode == 'NC':
-                logging.debug("Relay_mode: " + relay_mode)
-                # GPIO.setup(gpionr, GPIO.OUT, initial=GPIO.LOW)
-                logging.debug("setting GPIO setup to: GPIO.OUT")
-                GPIO.setup(gpionr, GPIO.OUT)
-                logging.debug("setting GPIO output to: GPIO.LOW")
-                GPIO.output(gpionr, GPIO.LOW)
-            else:
-                logging.error("wrong relay_mode in config")
-            logging.debug("sleeping 10s")
-            time.sleep(10)
-            logging.info("turn GPIO PowerSwitch on")
-            if relay_mode == 'NO':
-                logging.debug("Relay_mode: " + relay_mode)
-                # GPIO.output(gpionr, GPIO.LOW)
-                logging.debug("setting GPIO setup to: GPIO.OUT")
-                GPIO.setup(gpionr, GPIO.OUT)
-                logging.debug("setting GPIO output to: GPIO.LOW")
-                GPIO.output(gpionr, GPIO.LOW)
-            elif relay_mode == 'NC':
-                logging.debug("Relay_mode: " + relay_mode)
-                # GPIO.output(gpionr, GPIO.HIGH)
-                logging.debug("setting GPIO setup to: GPIO.OUT")
-                GPIO.setup(gpionr, GPIO.OUT)
-                logging.debug("setting GPIO output to: GPIO.HIGH")
-                GPIO.output(gpionr, GPIO.HIGH)
-            else:
-                logging.error("wrong relay_mode in config")
-
-            if eval(cleanup_mode):
-                GPIO.cleanup()
-                logging.info("GPIO cleanup done!")
-            logging.debug("PowerSwitch with GPIO done.")
-            return
-
-        ## CMD 
-        elif powerSwitchMode == 'CMD':
-            logging.debug("PowerSwitch with CMD starting.")
-            try:
-                subprocess.check_output(powerSwitchValue, shell=True)
-            except subprocess.CalledProcessError:
-                logging.error("failed to fire command")
-            time.sleep(int(self._off_on_sleep))
-            logging.debug("PowerSwitch with CMD done.")
-            self._rmd_data[DEVICE_ORIGIN_TO_REBOOT]['reboot_forced'] = True
-            self._rmd_data[DEVICE_ORIGIN_TO_REBOOT]['reboot_type'] = "CMD"
-            return
-
-        ## SCRIPT 
-        elif powerSwitchMode == 'SCRIPT':
-            logging.debug("PowerSwitch with SCRIPT starting.")
-            poweron = powerSwitchValue.split(";")[0]
-            poweroff = powerSwitchValue.split(";")[1]
-            logging.info("execute script for PowerSwitch off")
-            try:
-                subprocess.check_output(poweroff, shell=True)
-            except subprocess.CalledProcessError:
-                logging.error("failed to start script")
-            time.sleep(int(self._off_on_sleep))
-            logging.info("execute script for PowerSwitch on")
-            try:
-                subprocess.check_output(poweron, shell=True)
-            except subprocess.CalledProcessError:
-                logging.error("failed to start script")
-            logging.debug("PowerSwitch with SCRIPT done.")
-            return
-
-        ## POE 
-        elif powerSwitchMode == 'POE':
-            logging.debug("PowerSwitch with POE starting.")
-            try:
-                subprocess.check_output(powerSwitchValue, shell=True)
-            except subprocess.CalledProcessError:
-                logging.error("failed to fire poe port reset")
-            time.sleep(int(self._off_on_sleep))
-            logging.debug("PowerSwitch with POE done.")
-            return
-
-        ## PB
-        elif powerSwitchMode == 'PB':
-            logging.debug("PowerSwitch with PB starting.")
-            pbport = powerSwitchValue
-            pb_interface = powerSwitchOption
-            pbporton = '/bin/echo -e "on {}" > {}'.format(pbport, pb_interface)
-            pbportoff = '/bin/echo -e "off {}" > {}'.format(pbport, pb_interface)
-            logging.info("send command to PowerBoard for PowerSwitch off")
-            try:
-                subprocess.check_output(pbportoff, shell=True)
-            except subprocess.CalledProcessError:
-                logging.error("failed send command to PowerBoard")
-            time.sleep(int(self._off_on_sleep))
-            logging.info("send command to Powerboard for PowerSwitch on")
-            try:
-                subprocess.check_output(pbporton, shell=True)
-            except subprocess.CalledProcessError:
-                logging.error("failed send command to PowerBoard")
-            logging.debug("PowerSwitch with PB done.")
-            return
-			
-        ## SNMP
-        elif powerSwitchMode == 'SNMP':
-            logging.debug("PowerSwitch with SNMP starting.")
-            switchport = powerSwitchValue
-            snmp_switch_ip_adress = powerSwitchOption.split(";")[0]
-            snmp_community_string = powerSwitchOption.split(";")[1]
-            snmpporton = 'snmpset -v 2c -c {} {} 1.3.6.1.2.1.105.1.1.1.3.1.{} i 1'.format(snmp_community_string, snmp_switch_ip_adress, switchport)
-            snmpportoff = 'snmpset -v 2c -c {} {} 1.3.6.1.2.1.105.1.1.1.3.1.{} i 2'.format(snmp_community_string, snmp_switch_ip_adress, switchport)
-            try:
-                subprocess.check_output(snmpportoff, shell=True)
-                logging.info("send SNMP command port OFF to SWITCH")
-            except subprocess.CalledProcessError:
-                logging.error("failed to fire SNMP command")
-            time.sleep(int(self._off_on_sleep))
-            try:
-                subprocess.check_output(snmpporton, shell=True)
-                logging.info("send SNMP command port ON to SWITCH")
-            except subprocess.CalledProcessError:
-                logging.error("failed to fire SNMP command")
-            logging.debug("PowerSwitch with SNMP done.")
-            return
-        else:
-            logging.warning("no PowerSwitch configured. Do it manually!!!")
-
-
 ## Logging handler
 def create_timed_rotating_log(log_file):
     logging.basicConfig(filename=log_file, filemode='a', format='%(asctime)s %(levelname)-8s %(message)s',
@@ -736,7 +614,7 @@ if __name__ == '__main__':
 
     # Logging Options
     logconfig = configparser.ConfigParser()
-    logrootdir = os.path.dirname(os.path.abspath('config.ini'))
+    logrootdir = os.path.dirname(os.path.abspath('config/config.ini'))
     logconfig.read(logrootdir + "/config.ini")
     log_mode = logconfig.get("LOGGING", "LOG_MODE", fallback='console')
     log_filename = logconfig.get("LOGGING", "LOG_FILENAME", fallback='RMDClient.log')
@@ -749,158 +627,58 @@ if __name__ == '__main__':
     else:
         create_timed_rotating_log('/dev/null')
 
-    ## init rmdItem
-    rmdItem = rmdItem()
-		
-    # GPIO import libs
-    if eval(rmdItem._gpio_usage):
-        logging.debug("import GPIO libs")
-        import RPi.GPIO as GPIO
+    ## init rmdData
+    rmdData = rmdData()
+
+    ## Import modul classes
+    if rmdData._ip_ban_check_enable:
+        from lib import check_ipban
+    from lib import adb_tools
+    from lib import reboot
 
     # LED initalize / import libs
-    if eval(rmdItem._led_enable):
+    if eval(rmdData._led_enable):
         logging.debug("LED feature activated")        
-        if rmdItem._led_type == "internal":
+        if rmdData._led_type == "internal":
             logging.debug("import rpi_ws281x libs")
             from rpi_ws281x import *
             logging.debug("initiate led stripe")
-            rmdItem.initiate_led()
-        elif rmdItem._led_type == "external":
+            rmdData.initiate_led()
+        elif rmdData._led_type == "external":
             logging.debug("import webcolors and websocket libs")
             import webcolors
             import websocket
             from websocket import create_connection
-		
+
     try:
+        # Start up the server to expose the metrics.
+        if rmdData._prometheus_enable:
+            prometheus_client.start_http_server(int(rmdData._prometheus_port))
+        # Loop for checking every configured interval
         while True:
-            if eval(rmdItem._ip_ban_check_enable):
-                rmdItem.check_ipban()
+            # IP ban check if enabled
+            if rmdData._ip_ban_check_enable:
+                check_ipban.check_ipban(rmdData._ip_ban_check_wh, rmdData._ip_ban_check_ping )
                 logging.info("IP ban check done successfully")			     
 
+            # Start checking devices
             logging.info("Update device status data.")	
-            rmdItem.getDeviceStatusData()
+            rmdData.check_clients()
+			
+            # Create prometheus metrics
+            if rmdData._prometheus_enable:
+                rmdData.create_prometheus_metrics()   
 
-            ##checking devices for nessessary reboot
-            logging.info("Checking devices for nessessary reboot.")
-            for device in list(rmdItem._rmd_data):
+            # checking for rebooted devices
+            rmdData.check_rebooted_devices()
 
-                if rmdItem.calc_past_min_from_now(rmdItem._rmd_data[device]['last_proto_data']) - int(rmdItem._rmd_data[device]['current_sleep_time']) > int(rmdItem._proto_timeout) and rmdItem._rmd_data[device]['idle_status'] == 0:
+            # Reboot devices if nessessary
+            rmdData.reboot_bad_devices()
 
-                    if rmdItem.calc_past_min_from_now(rmdItem._rmd_data[device]['last_reboot_time']) < int(rmdItem._reboot_waittime):
-                        rmdItem._rmd_data[device]['reboot_nessessary'] = 'rebooting'
-                        ## set led status warn if enabled
-                        try:
-                            if eval(rmdItem._led_enable):
-                                logging.debug("Set status LED to warning for device {}".format(device))
-                                rmdItem.setStatusLED(device, 'warn')
-                        except:
-                            logging.error("Error setting status LED for device {} ".format(device))
-
-                    else:						
-                        rmdItem._rmd_data[device]['reboot_nessessary'] = True
-                        if rmdItem.calc_past_min_from_now(rmdItem._rmd_data[device]['last_proto_data']) - int(rmdItem._rmd_data[device]['current_sleep_time']) > int(rmdItem._force_reboot_timeout) or eval(rmdItem._try_adb_first) is False: 
-                            rmdItem._rmd_data[device]['reboot_force'] = True
-
-                        ## set led status critical if enabled
-                        try:
-                            if eval(rmdItem._led_enable):
-                                logging.debug("Set status LED to critical for device {}".format(device))
-                                rmdItem.setStatusLED(device, 'crit')
-                        except:
-                            logging.error("Error setting status LED for device: {} ".format(device))
-
-                else:
-                    rmdItem._rmd_data[device]['reboot_nessessary'] = False
-                    rmdItem._rmd_data[device]['reboot_force'] = False
-                    rmdItem._rmd_data[device]['reboot_count'] = 0
-
-                    # clear webhook_id after fixed message
-                    if rmdItem._rmd_data[device]['webhook_id'] is not None:
-                        rmdItem.discord_message(device, fixed=True)
-                        rmdItem._rmd_data[device]['reboot_type'] = None
-                        rmdItem._rmd_data[device]['reboot_forced'] = False
-                        rmdItem._rmd_data[device]['webhook_id'] = None  
-
-                    ## set led status ok if enabled
-                    try:
-                        if eval(rmdItem._led_enable):
-                            logging.debug("Set status LED to ok for device {}".format(device))
-                            rmdItem.setStatusLED(device, 'ok')
-                    except:
-                        logging.error("Error setting status LED for device {} ".format(device))
-
-            if eval(rmdItem._reboot_cycle):
-                ## Check for daily PowerCycle
-                logging.info("Checking devices which are not rebooted within 24h.")
-                if int(rmdItem._reboot_cycle_last_timestamp) < int(datetime.datetime.timestamp(datetime.datetime.now() - datetime.timedelta(minutes = int(rmdItem._reboot_cycle_wait_time)))):
-                    logging.debug("Last reboot cycle was before more than 5 minutes. Marking one device for doing reboot.") 
-                    dailyPowerCycleList = []
-                    rmdItem._reboot_cycle_last_timestamp = int(datetime.datetime.timestamp(datetime.datetime.now()))
-                    for device in list(rmdItem._rmd_data):
-                        if int(rmdItem._rmd_data[device]['last_reboot_time']) < int(datetime.datetime.timestamp(datetime.datetime.now() - datetime.timedelta(hours = 24))):
-                            logging.debug("Device " + device  + " not rebooted within 24h. Adding to list.")
-                            dailyPowerCycleList.append(device)
-                    if dailyPowerCycleList:
-                        logging.debug("Device " + dailyPowerCycleList[0] + " marked for reboot because its on the list dailyPowerCycleList.")
-                        rmdItem._rmd_data[dailyPowerCycleList[0]]['reboot_nessessary'] = True
-                    else:
-                        logging.debug("No device added to list dailyPowerCycleList.")
-                else:
-                    logging.info("reboot_cycle_last_timestamp not older than configured wait time. skipping.")
-                    
-            ## checking for rebooted devices
-            rebootedDevicedList = []
-            logging.debug("Find rebooted devices for information and update discord message.")	
-            logging.info("")
-            logging.info("---------------------------------------------")
-            logging.info("Devices are rebooted. Waiting to come online:")	
-            logging.info("---------------------------------------------")
-            logging.info("")
-
-            for device in list(rmdItem._rmd_data):
-                if str(rmdItem._rmd_data[device]['reboot_nessessary']) == 'rebooting': 
-                    rebootedDevicedList.append({'device': device, 'worker_status': rmdItem._rmd_data[device]['worker_status'], 'last_proto_data': rmdItem.timestamp_to_readable_datetime(rmdItem._rmd_data[device]['last_proto_data']), 'offline_minutes': rmdItem.calc_past_min_from_now(rmdItem._rmd_data[device]['last_proto_data']), 'count': rmdItem._rmd_data[device]['reboot_count'], 'last_reboot_time': rmdItem.timestamp_to_readable_datetime(rmdItem._rmd_data[device]['last_reboot_time']), 'reboot_ago_min': rmdItem.calc_past_min_from_now(rmdItem._rmd_data[device]['last_reboot_time']), 'type': rmdItem._rmd_data[device]['reboot_type']})
-
-                    # Update no_data time and existing Discord messages
-                    if rmdItem._rmd_data[device]['webhook_id'] is not None:
-                            logging.info('Update Discord message')
-                            rmdItem.discord_message(device)
-
-            if not rebootedDevicedList:
-                rmdItem.printTable([{'device': '-','worker_status': '-','last_proto_data': '-','offline_minutes': '-','count': '-','last_reboot_time': '-','reboot_ago_min': '-','type': '-'}], ['device','worker_status','last_proto_data','offline_minutes','count','last_reboot_time','reboot_ago_min','type'])
-                logging.info("")
-            else:
-                rmdItem.printTable(rebootedDevicedList, ['device','worker_status','last_proto_data','offline_minutes','count','last_reboot_time','reboot_ago_min','type'])
-                logging.info("")						
-
-            ##checking for bad devices
-            badDevicedList = []
-            logging.debug("Find bad devices and reboot them.")	
-            logging.info("")
-            logging.info("---------------------------------------------")
-            logging.info("Devices for reboot:")	
-            logging.info("---------------------------------------------")
-            logging.info("")
-
-            for device in list(rmdItem._rmd_data):
-                if str(rmdItem._rmd_data[device]['reboot_nessessary']) == 'True':
-                    badDevicedList.append({'device': device, 'worker_status': rmdItem._rmd_data[device]['worker_status'], 'last_proto_data': rmdItem.timestamp_to_readable_datetime(rmdItem._rmd_data[device]['last_proto_data']), 'offline_minutes': rmdItem.calc_past_min_from_now(rmdItem._rmd_data[device]['last_proto_data']), 'count': rmdItem._rmd_data[device]['reboot_count'], 'reboot_nessessary': rmdItem._rmd_data[device]['reboot_nessessary'], 'force': rmdItem._rmd_data[device]['reboot_force']})
-
-            if not badDevicedList:
-                rmdItem.printTable([{'device': '-','worker_status': '-','last_proto_data': '-','offline_minutes': '-','count': '-','reboot_nessessary': '-', 'force': '-'}], ['device','worker_status','last_proto_data','offline_minutes','count','reboot_nessessary','force'])
-                logging.info("")
-            else:
-                rmdItem.printTable(badDevicedList, ['device','worker_status','last_proto_data','offline_minutes','count','reboot_nessessary','force'])
-                logging.info("")
-
-            for badDevice in badDevicedList:
-                rmdItem.doRebootDevice(badDevice["device"])
-                rmdItem.discord_message(badDevice["device"])
-
-            logging.info("")
-            logging.debug("End of loop and waiting configured time before continue.")			
-            time.sleep(int(rmdItem._sleeptime_between_check)*60)
-		
+            # Waiting for next check			
+            logging.info("Waiting for {} seconds...".format(rmdData._sleeptime_between_check))
+            time.sleep(int(rmdData._sleeptime_between_check))
+	
     except KeyboardInterrupt:
         logging.info("RMD will be stopped")
-        exit(0)		
+        exit(0)	
