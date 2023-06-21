@@ -1,20 +1,16 @@
 # RebootMadDevice V4 - Flygon API version ( under developing)
-Reboot ATV devices via ADB or PowerSwitch when device is not responding to MAD or RDM.
+Reboot ATV devices via ADB or PowerSwitch when device is not responding to Flygon.
 
 Only works with Python 3.6 and above.
 
-Run the installation and this scripts not with sudo. Use root user!
-
-Running the daemon is only possible with root user!
-
-After restarting Flygon it will take up to 5 minutes before data is usable. 
+After restarting Flygon it will take up to 2 minutes before data is usable. 
 
 #### Install:
 ```
 Raspberry or Server:
 - pip3 install -r requirements.txt
 - pip3 install -r requirements_rpi.txt (only for raspberry - add support for GPIO and LED)
-- copy config.ini.example to config.ini and adjust the values
+- copy config/config.ini.example to config/config.ini and adjust the values
 - adjust RMDdaemon.sh with install path
 ```
 
@@ -89,6 +85,7 @@ It is possible to use different MAPPER_MODE on each device.
 ```
 - Flygon API support
 - Prometheus metrics
+- parallize device request
 ```
 ## License
 See the [LICENSE](https://github.com/GhostTalker/RebootMadDevice/blob/master/LICENSE.md) file for license rights and limitations (MIT).
