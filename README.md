@@ -56,6 +56,16 @@ restart<MAPPER_MODE_VALUE>.sh
 It is possible to use different MAPPER_MODE on each device.
 
 
+#### Prometheus config:
+Use IP address of the device where RMD is running and PORT is configured in the config.ini
+```
+  - job_name: 'rmd'
+    scrape_interval: 10s
+    static_configs:
+      - targets: ['<IP>:<Port>']
+```
+
+
 #### Features and supported hardware:
 ```
 - Reboot every device one times within 24 hours (optional)
