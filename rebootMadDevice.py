@@ -5,7 +5,7 @@
 #
 __author__ = "GhostTalker"
 __copyright__ = "Copyright 2023, The GhostTalker project"
-__version__ = "4.0.1"
+__version__ = "4.0.4"
 __status__ = "DEV"
 
 
@@ -124,11 +124,9 @@ class rmdData(object):
         self.rmd_metric_device_reboot_force = prometheus_client.Gauge('rmd_metric_device_reboot_force', 'Device need reboot force', ['device'])
         self.rmd_metric_device_last_reboot_forced_time = prometheus_client.Gauge('rmd_metric_device_last_reboot_forced_time', 'Device last reboot force time', ['device'])
         self.rmd_metric_device_webhook_id = prometheus_client.Gauge('rmd_metric_device_webhook_id', 'Actual status discord webhook id', ['device'])
-        self.rmd_metric_device_workerarea_id = prometheus_client.Gauge('rmd_metric_device_workerarea_id', 'Actual status discord webhook id', ['device'])
+        self.rmd_metric_device_workerarea_id = prometheus_client.Gauge('rmd_metric_device_workerarea_id', 'Actual area id', ['device'])
         self.rmd_metric_device_acc_username = prometheus_client.Gauge('rmd_metric_device_acc_username', 'Actual acc username', ['device','acc_username'])
-        self.rmd_metric_device_start_step = prometheus_client.Gauge('rmd_metric_device_start_step', 'Device working start step', ['device'])
-        self.rmd_metric_device_end_step = prometheus_client.Gauge('rmd_metric_device_end_step', 'Device working end step', ['device'])
-        self.rmd_metric_device_step = prometheus_client.Gauge('rmd_metric_device_step', 'Device actual working step', ['device'])
+        self.rmd_metric_device_workstep = prometheus_client.Gauge('rmd_metric_device_workstep', 'Device working step information', ['device', 'start_step', 'end_step', 'area_id', 'area_name'])
         #Prometheus metric for area
         self.rmd_metric_area_pokemon_worker = prometheus_client.Gauge('rmd_metric_area_pokemon_worker', 'Area worker pokemon mode count', ['area_id', 'area_name'])
         self.rmd_metric_area_quest_worker = prometheus_client.Gauge('rmd_metric_area_quest_worker', 'Area worker quest mode count', ['area_id', 'area_name'])
@@ -403,9 +401,7 @@ class rmdData(object):
             self.rmd_metric_device_webhook_id.labels(device).set(self._rmd_data[device]['webhook_id'])
             self.rmd_metric_device_workerarea_id.labels(device).set(self._rmd_data[device]['area_id'])	
             self.rmd_metric_device_acc_username.labels(device, self._rmd_data[device]['acc_username'] ).set(1)
-            self.rmd_metric_device_start_step.labels(device).set(self._rmd_data[device]['start_step'])	
-            self.rmd_metric_device_end_step.labels(device).set(self._rmd_data[device]['end_step'])
-            self.rmd_metric_device_step.labels(device).set(self._rmd_data[device]['step'])	
+            self.rmd_metric_device_workstep.labels(device, self._rmd_data[device]['start_step'], self._rmd_data[device]['end_step'], self._rmd_data[device]['area_id'], self._area_data[self._rmd_data[device]['area_id']]['name']).set(self._rmd_data[device]['step'])
 
         for area in self._area_data:
             self.rmd_metric_area_pokemon_worker.labels(area ,self._area_data[area]['name'] ).set(self._area_data[area]['pokemon_mode_workers'])
