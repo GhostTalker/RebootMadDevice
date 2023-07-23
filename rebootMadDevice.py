@@ -5,7 +5,7 @@
 #
 __author__ = "GhostTalker"
 __copyright__ = "Copyright 2023, The GhostTalker project"
-__version__ = "4.0.4"
+__version__ = "4.0.5"
 __status__ = "DEV"
 
 
@@ -142,7 +142,9 @@ class rmdData(object):
 
         except:
             logging.error("Get device data from flygon api failed.")
-            return "noDeviceStatusData"			
+            logging.error("sleep 30s and retry")            
+            time.sleep(30)
+            self.getDeviceStatusData()			
 
         return deviceStatusData
 
@@ -162,7 +164,9 @@ class rmdData(object):
 
         except:
             logging.error("Get area data from flygon api failed.")
-            return "noAreaData"			
+            logging.error("sleep 30s and retry")            
+            time.sleep(30)
+            self.getAreaData()			
 
         return areaData
 
@@ -244,17 +248,22 @@ class rmdData(object):
     
         # API-call for device status
         deviceStatusData = self.getDeviceStatusData()
+
         # API-call for area names
         areaData = self.getAreaData()
-    
-        threads = []
-        for device in self._rmd_data:
-            thread = Thread(target=self.check_client, args=(device, deviceStatusData, areaData))
-            thread.start()
-            threads.append(thread)
-    
-        for thread in threads:
-            thread.join()
+        #print(areaData)
+
+        try:    
+            threads = []
+            for device in self._rmd_data:
+                thread = Thread(target=self.check_client, args=(device, deviceStatusData, areaData))
+                thread.start()
+                threads.append(thread)
+        
+            for thread in threads:
+                thread.join()
+        except:
+            logging.error("Error checking clients. Threads failed.")
 
 
     def check_rebooted_devices(self):
@@ -386,27 +395,33 @@ class rmdData(object):
         logging.info(f'create metrics for prometheus...')
        
         for device in self._rmd_data:
-            self.rmd_metric_device_last_seen.labels(device).set(self._rmd_data[device]['last_seen'])
-            self.rmd_metric_device_last_reboot_time.labels(device).set(self._rmd_data[device]['last_reboot_time'])
-            self.rmd_metric_device_reboot_count.labels(device).set(self._rmd_data[device]['reboot_count'])
-            if self._rmd_data[device]['reboot_nessessary']:
-                self.rmd_metric_device_reboot_nessessary.labels(device).set(1)
-            else:
-                self.rmd_metric_device_reboot_nessessary.labels(device).set(0)
-            if self._rmd_data[device]['reboot_force']:
-                self.rmd_metric_device_reboot_force.labels(device).set(1)
-            else:
-                self.rmd_metric_device_reboot_force.labels(device).set(0)
-            self.rmd_metric_device_last_reboot_forced_time.labels(device).set(self._rmd_data[device]['last_reboot_forced_time'])
-            self.rmd_metric_device_webhook_id.labels(device).set(self._rmd_data[device]['webhook_id'])
-            self.rmd_metric_device_workerarea_id.labels(device).set(self._rmd_data[device]['area_id'])	
-            self.rmd_metric_device_acc_username.labels(device, self._rmd_data[device]['acc_username'] ).set(1)
-            self.rmd_metric_device_workstep.labels(device, self._rmd_data[device]['start_step'], self._rmd_data[device]['end_step'], self._rmd_data[device]['area_id'], self._area_data[self._rmd_data[device]['area_id']]['name']).set(self._rmd_data[device]['step'])
+            try:
+                self.rmd_metric_device_last_seen.labels(device).set(self._rmd_data[device]['last_seen'])
+                self.rmd_metric_device_last_reboot_time.labels(device).set(self._rmd_data[device]['last_reboot_time'])
+                self.rmd_metric_device_reboot_count.labels(device).set(self._rmd_data[device]['reboot_count'])
+                if self._rmd_data[device]['reboot_nessessary']:
+                    self.rmd_metric_device_reboot_nessessary.labels(device).set(1)
+                else:
+                    self.rmd_metric_device_reboot_nessessary.labels(device).set(0)
+                if self._rmd_data[device]['reboot_force']:
+                    self.rmd_metric_device_reboot_force.labels(device).set(1)
+                else:
+                    self.rmd_metric_device_reboot_force.labels(device).set(0)
+                self.rmd_metric_device_last_reboot_forced_time.labels(device).set(self._rmd_data[device]['last_reboot_forced_time'])
+                self.rmd_metric_device_webhook_id.labels(device).set(self._rmd_data[device]['webhook_id'])
+                self.rmd_metric_device_workerarea_id.labels(device).set(self._rmd_data[device]['area_id'])	
+                self.rmd_metric_device_acc_username.labels(device, self._rmd_data[device]['acc_username'] ).set(1)
+                self.rmd_metric_device_workstep.labels(device, self._rmd_data[device]['start_step'], self._rmd_data[device]['end_step'], self._rmd_data[device]['area_id'], self._area_data[self._rmd_data[device]['area_id']]['name']).set(self._rmd_data[device]['step'])
+            except:
+                logging.error("Error creating prometheus metrics for device {} ".format(device))
 
         for area in self._area_data:
-            self.rmd_metric_area_pokemon_worker.labels(area ,self._area_data[area]['name'] ).set(self._area_data[area]['pokemon_mode_workers'])
-            self.rmd_metric_area_quest_worker.labels(area ,self._area_data[area]['name'] ).set(self._area_data[area]['quest_mode_workers'])
-            self.rmd_metric_area_fort_worker.labels(area ,self._area_data[area]['name'] ).set(self._area_data[area]['fort_mode_workers'])
+            try:
+                self.rmd_metric_area_pokemon_worker.labels(area ,self._area_data[area]['name'] ).set(self._area_data[area]['pokemon_mode_workers'])
+                self.rmd_metric_area_quest_worker.labels(area ,self._area_data[area]['name'] ).set(self._area_data[area]['quest_mode_workers'])
+                self.rmd_metric_area_fort_worker.labels(area ,self._area_data[area]['name'] ).set(self._area_data[area]['fort_mode_workers'])
+            except:
+                logging.error("Error creating prometheus metrics for area {} ".format(area))                
 
 
     def discord_message(self, device_origin, fixed=False):

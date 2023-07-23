@@ -56,7 +56,7 @@ restart<MAPPER_MODE_VALUE>.sh
 It is possible to use different MAPPER_MODE on each device.
 
 
-#### Prometheus config:
+#### PROMETHEUS CONFIG:
 Use IP address of the device where RMD is running and PORT is configured in the config.ini
 ```
   - job_name: 'rmd'
@@ -68,6 +68,7 @@ Use IP address of the device where RMD is running and PORT is configured in the 
 
 #### Features and supported hardware:
 ```
+- Grafana template added
 - Reboot every device one times within 24 hours (optional)
 - Flygon support only
 - Prometheus metrics
