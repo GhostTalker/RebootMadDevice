@@ -5,8 +5,8 @@
 #
 __author__ = "GhostTalker"
 __copyright__ = "Copyright 2023, The GhostTalker project"
-__version__ = "4.0.5"
-__status__ = "DEV"
+__version__ = "4.0.9"
+__status__ = "TEST"
 
 
 # generic/built-in and other libs
@@ -29,6 +29,7 @@ class rmdData(object):
     _config = configparser.ConfigParser()
     _rootdir = os.path.dirname(os.path.abspath('config.ini'))
     _config.read(_rootdir + "/config/config.ini")
+    _api_flygon_secret = _config.get("FLYGONAPI", "API_FLYGON_SECRET", fallback=None)
     _api_endpoint_workers = _config.get("FLYGONAPI", "API_ENDPOINT_WORKERS")
     _api_endpoint_areas = _config.get("FLYGONAPI", "API_ENDPOINT_AREAS")
     _prometheus_enable = _config.getboolean("PROMETHEUS", "PROMETHEUS_ENABLE", fallback=False)
@@ -97,12 +98,12 @@ class rmdData(object):
                                 'reboot_forced': False,
                                 'last_reboot_forced_time': 0,
                                 'webhook_id': 0,
-                                'acc_username': "",
+                                'acc_username': "no account",
                                 'start_step': 0,
                                 'end_step': 0,
                                 'step': 0,								
                                 'host': "",
-                                'area_name': "",
+                                'area_name': "no area",
                                 'area_id': 0,
                                 'pokemon_mode_worker': 0,
                                 'quest_mode_worker': 0,
@@ -118,6 +119,7 @@ class rmdData(object):
             self.rmd_metric_device_info.labels(device, self._rmd_data[device]['device_location'],self._rmd_data[device]['mapper_mode'], self._rmd_data[device]['ip_address'], self._rmd_data[device]['switch_mode'], self._rmd_data[device]['led_position']).set(1)
         #Prometheus metric for device
         self.rmd_metric_device_last_seen = prometheus_client.Gauge('rmd_metric_device_last_seen', 'Device last seen', ['device'])
+        self.rmd_metric_device_status = prometheus_client.Gauge('rmd_metric_device_status', 'Device status', ['device'])
         self.rmd_metric_device_last_reboot_time = prometheus_client.Gauge('rmd_metric_device_last_reboot_time', 'Device last reboot time', ['device'])
         self.rmd_metric_device_reboot_count = prometheus_client.Gauge('rmd_metric_device_reboot_count', 'Device reboot count', ['device'])
         self.rmd_metric_device_reboot_nessessary = prometheus_client.Gauge('rmd_metric_device_reboot_nessessary', 'Device reboot nessessary', ['device'])
@@ -134,10 +136,19 @@ class rmdData(object):
 
     
     def getDeviceStatusData(self):
+
+        method = "get"
+        url = self._api_endpoint_workers
+        auth = None
+        headers = {
+           'Accept': 'application/json',
+           'X-Flygon-Secret': self._api_flygon_secret
+}
+
         # Get device data from flygon api
         try:
             logging.debug("Get device data from flygon api")
-            response = requests.get(self._api_endpoint_workers)
+            response = requests.request(method, url, headers=headers, auth=auth)
             deviceStatusData = response.json()
 
         except:
@@ -149,10 +160,19 @@ class rmdData(object):
         return deviceStatusData
 
     def getAreaData(self):
+
+        method = "get"
+        url = self._api_endpoint_areas
+        auth = None
+        headers = {
+           'Accept': 'application/json',
+           'X-Flygon-Secret': self._api_flygon_secret
+}
+
         # Get area data from flygon api
         try:
             logging.debug("Get area data from flygon api")
-            response = requests.get(self._api_endpoint_areas)
+            response = requests.request(method, url, headers=headers, auth=auth)
             areaData = response.json()
 
             # Prepare data for prometheus
@@ -277,7 +297,7 @@ class rmdData(object):
 
         for device in list(self._rmd_data):
             if str(self._rmd_data[device]['reboot_nessessary']) == 'rebooting': 
-                rebootedDevicedList.append({'device': device, 'worker_status': self._rmd_data[device]['worker_status'], 'last_seen': self.timestamp_to_readable_datetime(self._rmd_data[device]['last_seen']), 'offline_minutes': self.calc_past_min_from_now(self._rmd_data[device]['last_seen']), 'count': self._rmd_data[device]['reboot_count'], 'last_reboot_time': self.timestamp_to_readable_datetime(self._rmd_data[device]['last_reboot_time']), 'reboot_ago_min': self.calc_past_min_from_now(self._rmd_data[device]['last_reboot_time']), 'type': self._rmd_data[device]['reboot_type']})
+                rebootedDevicedList.append({'device': device, 'area': self._rmd_data[device]['area_name'], 'last_seen': self.timestamp_to_readable_datetime(self._rmd_data[device]['last_seen']), 'offline_minutes': self.calc_past_min_from_now(self._rmd_data[device]['last_seen']), 'count': self._rmd_data[device]['reboot_count'], 'last_reboot_time': self.timestamp_to_readable_datetime(self._rmd_data[device]['last_reboot_time']), 'reboot_ago_min': self.calc_past_min_from_now(self._rmd_data[device]['last_reboot_time']), 'type': self._rmd_data[device]['reboot_type']})
 
                 # Update no_data time and existing Discord messages
                 if self._rmd_data[device]['webhook_id'] != 0:
@@ -285,10 +305,10 @@ class rmdData(object):
                         self.discord_message(device)
 
         if not rebootedDevicedList:
-            self.printTable([{'device': '-','worker_status': '-','last_seen': '-','offline_minutes': '-','count': '-','last_reboot_time': '-','reboot_ago_min': '-','type': '-'}], ['device','worker_status','last_seen','offline_minutes','count','last_reboot_time','reboot_ago_min','type'])
+            self.printTable([{'device': '-','area': '-','last_seen': '-','offline_minutes': '-','count': '-','last_reboot_time': '-','reboot_ago_min': '-','type': '-'}], ['device','area','last_seen','offline_minutes','count','last_reboot_time','reboot_ago_min','type'])
             logging.info("")
         else:
-            self.printTable(rebootedDevicedList, ['device','worker_status','last_seen','offline_minutes','count','last_reboot_time','reboot_ago_min','type'])
+            self.printTable(rebootedDevicedList, ['device','area','last_seen','offline_minutes','count','last_reboot_time','reboot_ago_min','type'])
             logging.info("")
 
 
@@ -305,13 +325,13 @@ class rmdData(object):
 
         for device in list(self._rmd_data):
             if str(self._rmd_data[device]['reboot_nessessary']) == 'True':
-                badDevicedList.append({'device': device, 'worker_status': self._rmd_data[device]['worker_status'], 'last_seen': self.timestamp_to_readable_datetime(self._rmd_data[device]['last_seen']), 'offline_minutes': self.calc_past_min_from_now(self._rmd_data[device]['last_seen']), 'count': self._rmd_data[device]['reboot_count'], 'reboot_nessessary': self._rmd_data[device]['reboot_nessessary'], 'force': self._rmd_data[device]['reboot_force']})
+                badDevicedList.append({'device': device, 'area': self._rmd_data[device]['area_name'], 'last_seen': self.timestamp_to_readable_datetime(self._rmd_data[device]['last_seen']), 'offline_minutes': self.calc_past_min_from_now(self._rmd_data[device]['last_seen']), 'count': self._rmd_data[device]['reboot_count'], 'reboot_nessessary': self._rmd_data[device]['reboot_nessessary'], 'force': self._rmd_data[device]['reboot_force']})
 
         if not badDevicedList:
-            self.printTable([{'device': '-','worker_status': '-','last_seen': '-','offline_minutes': '-','count': '-','reboot_nessessary': '-', 'force': '-'}], ['device','worker_status','last_seen','offline_minutes','count','reboot_nessessary','force'])
+            self.printTable([{'device': '-','area': '-','last_seen': '-','offline_minutes': '-','count': '-','reboot_nessessary': '-', 'force': '-'}], ['device','area','last_seen','offline_minutes','count','reboot_nessessary','force'])
             logging.info("")
         else:
-            self.printTable(badDevicedList, ['device','worker_status','last_seen','offline_minutes','count','reboot_nessessary','force'])
+            self.printTable(badDevicedList, ['device','area','last_seen','offline_minutes','count','reboot_nessessary','force'])
             logging.info("")
 
         ## reboot in threads
@@ -411,7 +431,18 @@ class rmdData(object):
                 self.rmd_metric_device_webhook_id.labels(device).set(self._rmd_data[device]['webhook_id'])
                 self.rmd_metric_device_workerarea_id.labels(device).set(self._rmd_data[device]['area_id'])	
                 self.rmd_metric_device_acc_username.labels(device, self._rmd_data[device]['acc_username'] ).set(1)
-                self.rmd_metric_device_workstep.labels(device, self._rmd_data[device]['start_step'], self._rmd_data[device]['end_step'], self._rmd_data[device]['area_id'], self._area_data[self._rmd_data[device]['area_id']]['name']).set(self._rmd_data[device]['step'])
+                if self._rmd_data[device]['area_id'] == 0:
+                    self.rmd_metric_device_workstep.labels(device, 0, 0, 0, 'no area').set(0)   
+                else:
+                    self.rmd_metric_device_workstep.labels(device, self._rmd_data[device]['start_step'], self._rmd_data[device]['end_step'], self._rmd_data[device]['area_id'], self._area_data[self._rmd_data[device]['area_id']]['name']).set(self._rmd_data[device]['step'])
+			    
+                if ( self.makeTimestamp() - self._rmd_data[device]['last_seen'] ) < int(self._proto_timeout):
+                    self.rmd_metric_device_status.labels(device).set(0)
+                elif str(self._rmd_data[device]['reboot_nessessary']) == 'rebooting' and (( self.makeTimestamp() - self._rmd_data[device]['last_seen'] ) < int(self._force_reboot_timeout)):
+                    self.rmd_metric_device_status.labels(device).set(1)
+                elif ( self.makeTimestamp() - self._rmd_data[device]['last_seen'] ) > int(self._force_reboot_timeout):
+                    self.rmd_metric_device_status.labels(device).set(2)    				
+
             except:
                 logging.error("Error creating prometheus metrics for device {} ".format(device))
 

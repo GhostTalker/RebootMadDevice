@@ -14,6 +14,7 @@ LOG_FILENAME: RMDClient.log
 LOG_LEVEL: INFO
 
 [FLYGONAPI]
+API_FLYGON_SECRET: <secret>
 API_ENDPOINT_WORKERS: http://<ip>:<port>/api/workers/
 API_ENDPOINT_AREAS: http://<ip>:<port>/api/areas/
 
