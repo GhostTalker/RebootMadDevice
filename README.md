@@ -95,6 +95,7 @@ Use IP address of the device where RMD is running and PORT is configured in the 
 #### Whats new:
 ```
 - Flygon API support
+- added Flygon API secret
 - Prometheus metrics
 - parallize device request
 ```
