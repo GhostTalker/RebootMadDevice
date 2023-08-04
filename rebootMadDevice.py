@@ -209,8 +209,6 @@ class rmdData(object):
             self._rmd_data[uuid]['step'] = device_data['step']
             self._rmd_data[uuid]['host'] = device_data['host']
 
-            self._rmd_data['x36']['last_seen'] = 0
-
             # Analyze DATA of device
             logging.debug("Checking device {} for nessessary reboot.".format(self._device_origin))
     
