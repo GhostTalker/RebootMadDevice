@@ -5,7 +5,7 @@
 #
 __author__ = "GhostTalker"
 __copyright__ = "Copyright 2023, The GhostTalker project"
-__version__ = "4.0.10"
+__version__ = "4.1.0"
 __status__ = "TEST"
 
 
