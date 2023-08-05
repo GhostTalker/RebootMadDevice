@@ -5,7 +5,7 @@
 #
 __author__ = "GhostTalker"
 __copyright__ = "Copyright 2023, The GhostTalker project"
-__version__ = "4.1.0"
+__version__ = "4.1.2"
 __status__ = "TEST"
 
 
@@ -146,19 +146,19 @@ class rmdData(object):
            'Accept': 'application/json',
            'X-Flygon-Secret': self._api_flygon_secret
         }
-        # Get device data from flygon api
-        try:
-            logging.debug("Get device data from flygon api")
-            response = requests.request(method, url, headers=headers, auth=auth)
-            deviceStatusData = response.json()
 
-        except:
-            logging.error("Get device data from flygon api failed.")
-            logging.error("sleep 30s and retry")            
-            time.sleep(30)
-            self.getDeviceStatusData()			
-
-        return deviceStatusData
+        while True:
+            # Get device data from flygon api
+            try:
+                logging.debug("Get device data from flygon api")
+                response = requests.request(method, url, headers=headers, auth=auth)
+                deviceStatusData = response.json()
+                return deviceStatusData  # return inside the try block
+    
+            except:
+                logging.error("Get device data from flygon api failed.")
+                logging.error("sleep 30s and retry")
+                time.sleep(30)  # if request fails, sleep and then retry
 
 
     def getAreaData(self):
@@ -169,27 +169,26 @@ class rmdData(object):
            'Accept': 'application/json',
            'X-Flygon-Secret': self._api_flygon_secret
         }
-        # Get area data from flygon api
-        try:
-            logging.debug("Get area data from flygon api")
-            response = requests.request(method, url, headers=headers, auth=auth)
-            areaData = response.json()
 
-            # Prepare data for prometheus
-            for area in areaData['data']:
-                self._area_data[area['id']]= {'name': area['name'],
-                                              'pokemon_mode_workers': area['pokemon_mode']['workers'],
-                                              'quest_mode_workers': area['quest_mode']['workers'],
-                                              'fort_mode_workers': area['pokemon_mode']['workers']}
-
-        except:
-            logging.error("Get area data from flygon api failed.")
-            logging.error("sleep 30s and retry")            
-            time.sleep(30)
-            self.getAreaData()			
-
-        return areaData
-
+        while True:
+            # Get area data from flygon api
+            try:
+                logging.debug("Get area data from flygon api")
+                response = requests.request(method, url, headers=headers, auth=auth)
+                areaData = response.json()
+    
+                # Prepare data for prometheus
+                for area in areaData['data']:
+                    self._area_data[area['id']] = {'name': area['name'],
+                                                   'pokemon_mode_workers': area['pokemon_mode']['workers'],
+                                                   'quest_mode_workers': area['quest_mode']['workers'],
+                                                   'fort_mode_workers': area['pokemon_mode']['workers']}
+                return areaData  # return inside the try block
+    
+            except:
+                logging.error("Get area data from flygon api failed.")
+                logging.error("sleep 30s and retry")
+                time.sleep(30)  # if request fails, sleep and then retry
 
     def check_client(self, device, deviceStatusData, areaData):
         uuid = device
@@ -775,41 +774,6 @@ class rmdData(object):
                 banned = False
                 wh_send = False
         
-        banned = True
-        wh_send = False
-        while banned: 
-            logging.info("Checking MAD Backend Login Servers...")
-            try:
-                result = requests.head('https://auth.maddev.eu')
-                result.raise_for_status()
-            except requests.exceptions.RequestException as err:
-                logging.info(f"MAD Backend Servers are not reachable! Error: {err}")
-                logging.info("Waiting 5 minutes and trying again")
-                time.sleep(300)
-                continue
-            if result.status_code != 200:
-                logging.info("IP is banned by MAD, waiting 5 minutes and trying again")
-                # Only send a message once per ban and only when a webhook is set
-                if not wh_send and rmdItem._ip_ban_check_wh:
-                    unbantime = datetime.datetime.now() + datetime.timedelta(hours=3)
-                    data = {
-                        "username": "Alert!",
-                        "avatar_url": "https://github.com/GhostTalker/icons/blob/main/rmd/messagebox_critical_256.png?raw=true",
-                        "content": f"<@{rmdItem._ip_ban_check_ping}> IP address is currently banned by MAD! \nApproximate remaining time until unban: <t:{int(unbantime.timestamp())}:R> ({unbantime.strftime('%H:%M')})",
-                    }
-                    try:
-                        result = requests.post(rmdItem._ip_ban_check_wh, json=data)
-                        result.raise_for_status()
-                    except requests.exceptions.RequestException as err:
-                        logging.info(err)
-                wh_send = True
-                time.sleep(300)
-                continue
-            else:
-                logging.info("IP is not banned by MAD, continuing...")
-                banned = False
-                wh_send = False
-
 
     def initiate_led(self):
         global strip
