@@ -5,7 +5,7 @@
 #
 __author__ = "GhostTalker"
 __copyright__ = "Copyright 2023, The GhostTalker project"
-__version__ = "4.1.2"
+__version__ = "4.1.3"
 __status__ = "TEST"
 
 
@@ -858,8 +858,12 @@ class rmdData(object):
 
 
     def timestamp_to_readable_datetime(self, vartimestamp):
-        """ make timestamp human readable """
-        timestamp = datetime.datetime.fromtimestamp(vartimestamp)
+        try:
+            """ make timestamp human readable """
+            timestamp = datetime.datetime.fromtimestamp(vartimestamp)
+        except:
+            """ prevent error while having wrong timestamp """
+            timestamp = datetime.datetime.fromtimestamp(self.makeTimestamp())            
         return timestamp.strftime("%Y-%m-%d %H:%M:%S")
 
 
