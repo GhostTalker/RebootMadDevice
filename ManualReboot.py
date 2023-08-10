@@ -5,7 +5,7 @@
 #
 __author__ = "GhostTalker"
 __copyright__ = "Copyright 2022, The GhostTalker project"
-__version__ = "4.1.0"
+__version__ = "4.1.1"
 __status__ = "TEST"
 
 # generic/built-in and other libs
@@ -74,7 +74,7 @@ class rmdConfig(object):
                                 'switch_mode': _jsondata[device]["SWITCH_MODE"],
                                 'switch_option': _jsondata[device]["SWITCH_OPTION"],
                                 'switch_value': _jsondata[device]["SWITCH_VALUE"],
-                                'led_position': _jsondata[device]["LED_POSITION"],
+                                'led_position': _jsondata[device]["LED_POSITION"]}
 
 
     def doRebootDevice(self, DEVICE_ORIGIN_TO_REBOOT):
