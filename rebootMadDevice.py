@@ -156,7 +156,7 @@ class rmdData(object):
                                                       'dateLastMessageSent': worker['mitm']['dateLastMessageSent'],
                                                       'init': worker['mitm']['init'],
                                                       'isAlive': worker['mitm']['isAlive'],
-                                                      'workerName': scanner_info.get('workerName', '')
+                                                      'workerName': scanner_info.get('workerName', '')}
 
 
     def check_client(self, device, deviceStatusData):
