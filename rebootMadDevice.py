@@ -5,7 +5,7 @@
 #
 __author__ = "GhostTalker"
 __copyright__ = "Copyright 2023, The GhostTalker project"
-__version__ = "4.2.3"
+__version__ = "4.2.4"
 __status__ = "TEST"
 
 
@@ -120,7 +120,7 @@ class rmdData(object):
         self.rmd_metric_device_last_reboot_forced_time = prometheus_client.Gauge('rmd_metric_device_last_reboot_forced_time', 'Device last reboot force time', ['device'])
         self.rmd_metric_device_webhook_id = prometheus_client.Gauge('rmd_metric_device_webhook_id', 'Actual status discord webhook id', ['device'])
         #Prometheus metric for worker
-        self.rmd_metric_worker = prometheus_client.Gauge('rmd_metric_worker', 'worker status alive',['workerId','origin','isAllocated','init','workerName','dateLastMessageReceived'])
+        self.rmd_metric_worker = prometheus_client.Gauge('rmd_metric_worker', 'worker status',['workerId','origin','isAllocated','init','workerName','dateLastMessageReceived','isAlive'])
 
 
     def getDeviceStatusData(self):
@@ -602,17 +602,15 @@ class rmdData(object):
 
         for worker_id, worker_data in self._worker_data.items():
             try:
-                is_alive_value = worker_data.get('isAlive', 'false')
-                is_alive = 1 if is_alive_value == 'true' else 0
-        
                 self.rmd_metric_worker.labels(
                     worker_id,
                     worker_data.get('origin'),
                     worker_data.get('isAllocated'),
                     worker_data.get('init'),
                     worker_data.get('workerName'),
-                    worker_data.get('dateLastMessageReceived')
-                ).set(is_alive)
+                    worker_data.get('dateLastMessageReceived'),
+                    worker_data.get('isAlive'),
+                ).set(1)
         
             except Exception as e:
                 logging.error(f"Error creating prometheus metrics for worker {worker_id}: {str(e)}")
