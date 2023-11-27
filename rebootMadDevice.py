@@ -600,17 +600,26 @@ class rmdData(object):
             except:
                 logging.error("Error creating prometheus metrics for device {} ".format(device))            
 
-        for worker in self._worker_data:
+        for worker_id, worker_data in self._worker_data.items():
             try:
-                if worker['isAlive']=='true':
-                    isAlive=1 
+                if worker_data.get('isAlive', '').lower() == 'true':
+                    isAlive = 1
                 else:
-                    isAlive=0
-
-                self.rmd_metric_worker.labels(worker['workerId'],worker['origin'],worker['deviceId'],worker['isAllocated'],worker['init'],worker['workerName'],worker['dateLastMessageReceived'],worker['dateLastMessageSent']).set(isAlive)
-
-            except:
-                logging.error("Error creating prometheus metrics for worker {} ".format(int(worker['workerId'])))            
+                    isAlive = 0
+        
+                self.rmd_metric_worker.labels(
+                    worker_id,
+                    worker_data.get('origin', ''),
+                    worker_data.get('deviceId', ''),
+                    str(worker_data.get('isAllocated', '')),  # Convert to string if necessary
+                    worker_data.get('init', ''),
+                    worker_data.get('workerName', ''),
+                    worker_data.get('dateLastMessageReceived', ''),
+                    worker_data.get('dateLastMessageSent', '')
+                ).set(isAlive)
+        
+            except Exception as e:
+                logging.error(f"Error creating prometheus metrics for worker {worker_id}: {str(e)}")          
 
 
     def discord_message(self, device_origin, fixed=False):
