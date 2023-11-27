@@ -3,3 +3,4 @@
 venv/
 config/config.ini
 config/devices.json
+mapperscripts/restartV*

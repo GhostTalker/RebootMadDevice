@@ -13,10 +13,9 @@ LOG_MODE: console
 LOG_FILENAME: RMDClient.log
 LOG_LEVEL: INFO
 
-[FLYGONAPI]
-API_FLYGON_SECRET: <secret>
-API_ENDPOINT_WORKERS: http://<ip>:<port>/api/workers/
-API_ENDPOINT_AREAS: http://<ip>:<port>/api/areas/
+[ROTOMAPI]
+API_ROTOM_SECRET: <secret>
+API_ENDPOINT_STATUS: http://<ip>:<port>/api/status
 
 [PROMETHEUS]
 PROMETHEUS_ENABLE: <True/False>

@@ -1,11 +1,11 @@
-# RebootMadDevice V4 - Flygon API version ( under developing)
-Reboot ATV devices via ADB or PowerSwitch when device is not responding to Flygon.
+# RebootMadDevice V4 - Rotom API version ( under developing)
+Reboot ATV devices via ADB or PowerSwitch when device is not responding to Rotom.
 
 Only works with Python 3.6 and above.
 
-After restarting Flygon it will take up to 2 minutes before data is usable. 
+After restarting Rotom it will take up to 2 minutes before data is usable. 
 
-#### Install:
+### Install:
 ```
 Raspberry or Server:
 - pip3 install -r requirements.txt
@@ -14,7 +14,7 @@ Raspberry or Server:
 - adjust RMDdaemon.sh with install path
 ```
 
-#### Using the daemon:
+### Using the daemon:
  
 The deamon has to be started with:
 ```
@@ -30,7 +30,7 @@ and if you want to stop:
 RMDdaemon.sh stop
 ```
 
-#### Doing a manual reboot (e.g. for testing):
+### Doing a manual reboot (e.g. for testing):
  
 A manual reboot can be done with the ManualReboot.py script:
 ```
@@ -39,7 +39,7 @@ or
    ManualReboot.py --origin <DEVICE_ORIGIN_TO_REBOOT>
 ```
 
-#### ADD MAPPER RESTART SCRIPT:
+### ADD MAPPER RESTART SCRIPT:
  
 To use the mapper restart option the config parameter TRY_RESTART_MAPPER_FIRST has to be true.
 ```
@@ -56,7 +56,7 @@ restart<MAPPER_MODE_VALUE>.sh
 It is possible to use different MAPPER_MODE on each device.
 
 
-#### PROMETHEUS CONFIG:
+### PROMETHEUS CONFIG:
 Use IP address of the device where RMD is running and PORT is configured in the config.ini
 ```
   - job_name: 'rmd'
@@ -66,7 +66,7 @@ Use IP address of the device where RMD is running and PORT is configured in the 
 ```
 
 
-#### Features and supported hardware:
+### Features and supported hardware:
 ```
 - Grafana template added
 - Reboot every device one times within 24 hours (optional)
@@ -92,10 +92,10 @@ Use IP address of the device where RMD is running and PORT is configured in the 
 - manual reboot script for testing (work in progress)
 - Restart for mapper software
 ```
-#### Whats new:
+### Whats new:
 ```
-- Flygon API support
-- added Flygon API secret
+- Rotom API support
+- added Rotom API secret
 - Prometheus metrics
 - parallize device request
 ```
