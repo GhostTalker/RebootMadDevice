@@ -151,7 +151,7 @@ class rmdData(object):
         # Update data from deviceStatusData in _rmd_data set
         if any(device['origin'] == uuid for device in deviceStatusData['devices']):
             device_data = next(device for device in deviceStatusData['devices'] if device['origin'] == uuid)
-            self._rmd_data[uuid]['last_seen'] = device_data['last_seen']
+            self._rmd_data[uuid]['last_seen'] = device_data['dateLastMessageReceived']
 
 
             # Analyze DATA of device
