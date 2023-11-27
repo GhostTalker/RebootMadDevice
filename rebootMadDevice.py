@@ -607,7 +607,7 @@ class rmdData(object):
         
                 self.rmd_metric_worker.labels(
                     worker_id,
-                    worker_data.get('origin')
+                    worker_data.get('origin'),
                     worker_data.get('isAllocated'),
                     worker_data.get('init'),
                     worker_data.get('workerName'),
