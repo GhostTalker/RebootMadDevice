@@ -602,10 +602,8 @@ class rmdData(object):
 
         for worker_id, worker_data in self._worker_data.items():
             try:
-                if worker_data.get('isAlive', '').lower() == 'true':
-                    isAlive = 1
-                else:
-                    isAlive = 0
+                is_alive_value = worker_data.get('isAlive', '').lower()
+                is_alive = 1 if is_alive_value == 'true' else 0
         
                 self.rmd_metric_worker.labels(
                     worker_id,
@@ -616,10 +614,10 @@ class rmdData(object):
                     worker_data.get('workerName', ''),
                     worker_data.get('dateLastMessageReceived', ''),
                     worker_data.get('dateLastMessageSent', '')
-                ).set(isAlive)
+                ).set(is_alive)
         
             except Exception as e:
-                logging.error(f"Error creating prometheus metrics for worker {worker_id}: {str(e)}")          
+                logging.error(f"Error creating prometheus metrics for worker {worker_id}: {str(e)}")
 
 
     def discord_message(self, device_origin, fixed=False):
