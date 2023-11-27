@@ -144,8 +144,8 @@ class rmdData(object):
                 time.sleep(30)  # if request fails, sleep and then retry
 
 
-    def check_client(self, device_origin, deviceStatusData):
-        self._device_origin = device_origin
+    def check_client(self, device, deviceStatusData):
+        self._device_origin = device
 
         # Update data from deviceStatusData in _rmd_data set
         if any(device['origin'] == self._device_origin for device in deviceStatusData['devices']):
