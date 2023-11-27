@@ -5,7 +5,7 @@
 #
 __author__ = "GhostTalker"
 __copyright__ = "Copyright 2023, The GhostTalker project"
-__version__ = "4.1.3"
+__version__ = "4.2.1"
 __status__ = "TEST"
 
 
@@ -29,9 +29,8 @@ class rmdData(object):
     _config = configparser.ConfigParser()
     _rootdir = os.path.dirname(os.path.abspath('config.ini'))
     _config.read(_rootdir + "/config/config.ini")
-    _api_flygon_secret = _config.get("FLYGONAPI", "API_FLYGON_SECRET", fallback=None)
-    _api_endpoint_workers = _config.get("FLYGONAPI", "API_ENDPOINT_WORKERS")
-    _api_endpoint_areas = _config.get("FLYGONAPI", "API_ENDPOINT_AREAS")
+    _api_rotom_secret = _config.get("ROTOMAPI", "API_ROTOM_SECRET", fallback=None)
+    _api_endpoint_status = _config.get("ROTOMAPI", "API_ENDPOINT_STATUS")
     _prometheus_enable = _config.getboolean("PROMETHEUS", "PROMETHEUS_ENABLE", fallback=False)
     _prometheus_port = _config.get("PROMETHEUS", "PROMETHEUS_PORT", fallback=8000)
     _prometheus_device_location = _config.get("PROMETHEUS", "PROMETHEUS_DEVICE_LOCATION", fallback="")
@@ -99,16 +98,7 @@ class rmdData(object):
                                 'reboot_forced': False,
                                 'last_reboot_forced_time': 0,
                                 'webhook_id': 0,
-                                'acc_username': "no account",
-                                'start_step': 0,
-                                'end_step': 0,
-                                'step': 0,								
-                                'host': "",
-                                'area_name': "no area",
-                                'area_id': 0,
-                                'pokemon_mode_worker': 0,
-                                'quest_mode_worker': 0,
-                                'fort_mode_worker': 0								
+                                'workercount': 0								
 								}
 
         # Prometheus metric for build and running info
@@ -129,84 +119,40 @@ class rmdData(object):
         self.rmd_metric_device_reboot_force = prometheus_client.Gauge('rmd_metric_device_reboot_force', 'Device need reboot force', ['device'])
         self.rmd_metric_device_last_reboot_forced_time = prometheus_client.Gauge('rmd_metric_device_last_reboot_forced_time', 'Device last reboot force time', ['device'])
         self.rmd_metric_device_webhook_id = prometheus_client.Gauge('rmd_metric_device_webhook_id', 'Actual status discord webhook id', ['device'])
-        self.rmd_metric_device_workerarea_id = prometheus_client.Gauge('rmd_metric_device_workerarea_id', 'Actual area id', ['device'])
-        self.rmd_metric_device_acc_username = prometheus_client.Gauge('rmd_metric_device_acc_username', 'Actual acc username', ['device','acc_username'])
-        self.rmd_metric_device_workstep = prometheus_client.Gauge('rmd_metric_device_workstep', 'Device working step information', ['device', 'start_step', 'end_step', 'area_id', 'area_name'])
-        #Prometheus metric for area
-        self.rmd_metric_area_pokemon_worker = prometheus_client.Gauge('rmd_metric_area_pokemon_worker', 'Area worker pokemon mode count', ['area_id', 'area_name'])
-        self.rmd_metric_area_quest_worker = prometheus_client.Gauge('rmd_metric_area_quest_worker', 'Area worker quest mode count', ['area_id', 'area_name'])
-        self.rmd_metric_area_fort_worker = prometheus_client.Gauge('rmd_metric_area_fort_worker', 'Area worker fort mode count', ['area_id', 'area_name'])
 
 
     def getDeviceStatusData(self):
         method = "get"
-        url = self._api_endpoint_workers
+        url = self._api_endpoint_status
         auth = None
         headers = {
            'Accept': 'application/json',
-           'X-Flygon-Secret': self._api_flygon_secret
+           'X-Rotom-Secret': self._api_rotom_secret
         }
 
         while True:
-            # Get device data from flygon api
+            # Get device data from rotom api
             try:
-                logging.debug("Get device data from flygon api")
+                logging.debug("Get device data from rotom api")
                 response = requests.request(method, url, headers=headers, auth=auth)
                 deviceStatusData = response.json()
                 return deviceStatusData  # return inside the try block
     
             except:
-                logging.error("Get device data from flygon api failed.")
+                logging.error("Get device data from rotom api failed.")
                 logging.error("sleep 30s and retry")
                 time.sleep(30)  # if request fails, sleep and then retry
 
 
-    def getAreaData(self):
-        method = "get"
-        url = self._api_endpoint_areas
-        auth = None
-        headers = {
-           'Accept': 'application/json',
-           'X-Flygon-Secret': self._api_flygon_secret
-        }
-
-        while True:
-            # Get area data from flygon api
-            try:
-                logging.debug("Get area data from flygon api")
-                response = requests.request(method, url, headers=headers, auth=auth)
-                areaData = response.json()
-    
-                # Prepare data for prometheus
-                for area in areaData['data']:
-                    self._area_data[area['id']] = {'name': area['name'],
-                                                   'pokemon_mode_workers': area['pokemon_mode']['workers'],
-                                                   'quest_mode_workers': area['quest_mode']['workers'],
-                                                   'fort_mode_workers': area['pokemon_mode']['workers']}
-                return areaData  # return inside the try block
-    
-            except:
-                logging.error("Get area data from flygon api failed.")
-                logging.error("sleep 30s and retry")
-                time.sleep(30)  # if request fails, sleep and then retry
-
-    def check_client(self, device, deviceStatusData, areaData):
+    def check_client(self, device, deviceStatusData):
         uuid = device
         self._device_origin = uuid
 
         # Update data from deviceStatusData in _rmd_data set
-        if any(device['uuid'] == uuid for device in deviceStatusData['data']):
-            device_data = next(device for device in deviceStatusData['data'] if device['uuid'] == uuid)
+        if any(device['origin'] == uuid for device in deviceStatusData['devices']):
+            device_data = next(device for device in deviceStatusData['devices'] if device['origin'] == uuid)
             self._rmd_data[uuid]['last_seen'] = device_data['last_seen']
-            self._rmd_data[uuid]['acc_username'] = device_data['username']
-            for area in areaData['data']:
-                if area['id'] == device_data['area_id']: 
-                    self._rmd_data[uuid]['area_name'] = area['name']
-            self._rmd_data[uuid]['area_id'] = device_data['area_id']
-            self._rmd_data[uuid]['start_step'] = device_data['start_step']			
-            self._rmd_data[uuid]['end_step'] = device_data['end_step']			
-            self._rmd_data[uuid]['step'] = device_data['step']
-            self._rmd_data[uuid]['host'] = device_data['host']
+
 
             # Analyze DATA of device
             logging.debug("Checking device {} for nessessary reboot.".format(self._device_origin))
@@ -268,14 +214,10 @@ class rmdData(object):
         # API-call for device status
         deviceStatusData = self.getDeviceStatusData()
 
-        # API-call for area names
-        areaData = self.getAreaData()
-        #print(areaData)
-
         try:    
             threads = []
             for device in self._rmd_data:
-                thread = Thread(target=self.check_client, args=(device, deviceStatusData, areaData))
+                thread = Thread(target=self.check_client, args=(device, deviceStatusData))
                 thread.start()
                 threads.append(thread)
         
@@ -633,13 +575,6 @@ class rmdData(object):
                     self.rmd_metric_device_reboot_force.labels(device).set(0)
                 self.rmd_metric_device_last_reboot_forced_time.labels(device).set(self._rmd_data[device]['last_reboot_forced_time'])
                 self.rmd_metric_device_webhook_id.labels(device).set(self._rmd_data[device]['webhook_id'])
-                self.rmd_metric_device_workerarea_id.labels(device).set(self._rmd_data[device]['area_id'])	
-                self.rmd_metric_device_acc_username.labels(device, self._rmd_data[device]['acc_username'] ).set(1)
-                if self._rmd_data[device]['area_id'] == 0:
-                    self.rmd_metric_device_workstep.labels(device, 0, 0, 0, 'no area').set(0)   
-                else:
-                    self.rmd_metric_device_workstep.labels(device, self._rmd_data[device]['start_step'], self._rmd_data[device]['end_step'], self._rmd_data[device]['area_id'], self._area_data[self._rmd_data[device]['area_id']]['name']).set(self._rmd_data[device]['step'])
-			    
                 if ( self.makeTimestamp() - self._rmd_data[device]['last_seen'] ) < int(self._proto_timeout):
                     self.rmd_metric_device_status.labels(device).set(0)
                 elif str(self._rmd_data[device]['reboot_nessessary']) == 'rebooting' and (( self.makeTimestamp() - self._rmd_data[device]['last_seen'] ) < int(self._force_reboot_timeout)):
@@ -648,15 +583,7 @@ class rmdData(object):
                     self.rmd_metric_device_status.labels(device).set(2)    				
 
             except:
-                logging.error("Error creating prometheus metrics for device {} ".format(device))
-
-        for area in self._area_data:
-            try:
-                self.rmd_metric_area_pokemon_worker.labels(area ,self._area_data[area]['name'] ).set(self._area_data[area]['pokemon_mode_workers'])
-                self.rmd_metric_area_quest_worker.labels(area ,self._area_data[area]['name'] ).set(self._area_data[area]['quest_mode_workers'])
-                self.rmd_metric_area_fort_worker.labels(area ,self._area_data[area]['name'] ).set(self._area_data[area]['fort_mode_workers'])
-            except:
-                logging.error("Error creating prometheus metrics for area {} ".format(area))                
+                logging.error("Error creating prometheus metrics for device {} ".format(device))            
 
 
     def discord_message(self, device_origin, fixed=False):
