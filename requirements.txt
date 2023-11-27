@@ -1,7 +1,7 @@
 certifi==2023.7.22
 charset-normalizer==2.0.12
 configparser==5.2.0
-gevent==21.12.0
+gevent==23.9.0
 greenlet==1.1.2
 idna==3.3
 mysql-connector==2.2.9
