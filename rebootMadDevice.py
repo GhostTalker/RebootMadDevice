@@ -144,14 +144,12 @@ class rmdData(object):
                 time.sleep(30)  # if request fails, sleep and then retry
 
 
-    def check_client(self, device, deviceStatusData):
-        uuid = device
-        self._device_origin = uuid
+    def check_client(self, self._device_origin, deviceStatusData):
 
         # Update data from deviceStatusData in _rmd_data set
-        if any(device['origin'] == uuid for device in deviceStatusData['devices']):
-            device_data = next(device for device in deviceStatusData['devices'] if device['origin'] == uuid)
-            self._rmd_data[uuid]['last_seen'] = device_data['dateLastMessageReceived']
+        if any(device['origin'] == self._device_origin for device in deviceStatusData['devices']):
+            device_data = next(device for device in deviceStatusData['devices'] if device['origin'] == self._device_origin)
+            self._rmd_data[self._device_origin]['last_seen'] = device_data['dateLastMessageReceived']
 
 
             # Analyze DATA of device
