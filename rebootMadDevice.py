@@ -5,7 +5,7 @@
 #
 __author__ = "GhostTalker"
 __copyright__ = "Copyright 2023, The GhostTalker project"
-__version__ = "4.2.1"
+__version__ = "4.2.2"
 __status__ = "TEST"
 
 
@@ -72,7 +72,7 @@ class rmdData(object):
     def initRMDdata(self):
         # init dict 
         self._rmd_data = {}
-        self._area_data = {}
+        self._worker_data = {}
     
         # read json file
         logging.debug("Read data from devices.json file.")
@@ -119,6 +119,8 @@ class rmdData(object):
         self.rmd_metric_device_reboot_force = prometheus_client.Gauge('rmd_metric_device_reboot_force', 'Device need reboot force', ['device'])
         self.rmd_metric_device_last_reboot_forced_time = prometheus_client.Gauge('rmd_metric_device_last_reboot_forced_time', 'Device last reboot force time', ['device'])
         self.rmd_metric_device_webhook_id = prometheus_client.Gauge('rmd_metric_device_webhook_id', 'Actual status discord webhook id', ['device'])
+        #Prometheus metric for worker
+        self.rmd_metric_worker = prometheus_client.Gauge('rmd_metric_worker', 'worker status alive',['workerId','origin','deviceId','isAllocated','init','workerName','dateLastMessageReceived','dateLastMessageSent'])
 
 
     def getDeviceStatusData(self):
@@ -142,6 +144,19 @@ class rmdData(object):
                 logging.error("Get device data from rotom api failed.")
                 logging.error("sleep 30s and retry")
                 time.sleep(30)  # if request fails, sleep and then retry
+
+
+    def createWorkerData(self, deviceStatusData):
+        for worker in deviceStatusData['workers']:
+            scanner_info = worker.get('scanner', {})  # check if 'scanner' exist for worker
+            self._worker_data[worker['workerId']] = { 'origin': worker['mitm']['origin'],
+                                                      'isAllocated': worker['isAllocated'],
+                                                      'deviceId': worker['deviceId'],													  
+                                                      'dateLastMessageReceived': worker['mitm']['dateLastMessageReceived'], 
+                                                      'dateLastMessageSent': worker['mitm']['dateLastMessageSent'],
+                                                      'init': worker['mitm']['init'],
+                                                      'isAlive': worker['mitm']['isAlive'],
+                                                      'workerName': scanner_info.get('workerName', '')
 
 
     def check_client(self, device, deviceStatusData):
@@ -212,6 +227,7 @@ class rmdData(object):
     
         # API-call for device status
         deviceStatusData = self.getDeviceStatusData()
+        self.createWorkerData(deviceStatusData)
 
         try:    
             threads = []
@@ -583,6 +599,18 @@ class rmdData(object):
 
             except:
                 logging.error("Error creating prometheus metrics for device {} ".format(device))            
+
+        for worker in self._worker_data:
+            try:
+                if worker['isAlive']:
+                    isAlive=1 
+                else
+                    isAlive=0
+
+                self.rmd_metric_worker.labels(worker['workerId'],worker['origin'],worker['deviceId'],worker['isAllocated'],worker['init'],worker['workerName'],worker['dateLastMessageReceived'],worker['dateLastMessageSent']).set(isAlive)
+
+            except:
+                logging.error("Error creating prometheus metrics for worker {} ".format(worker['workerId']))            
 
 
     def discord_message(self, device_origin, fixed=False):
