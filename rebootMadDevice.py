@@ -604,7 +604,7 @@ class rmdData(object):
             try:
                 if worker['isAlive']:
                     isAlive=1 
-                else
+                else:
                     isAlive=0
 
                 self.rmd_metric_worker.labels(worker['workerId'],worker['origin'],worker['deviceId'],worker['isAllocated'],worker['init'],worker['workerName'],worker['dateLastMessageReceived'],worker['dateLastMessageSent']).set(isAlive)
