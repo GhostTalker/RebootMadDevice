@@ -602,18 +602,18 @@ class rmdData(object):
 
         for worker_id, worker_data in self._worker_data.items():
             try:
-                is_alive_value = worker_data.get('isAlive', '').lower()
+                is_alive_value = worker_data.get('isAlive', 'false')
                 is_alive = 1 if is_alive_value == 'true' else 0
         
                 self.rmd_metric_worker.labels(
                     worker_id,
-                    worker_data.get('origin', ''),
-                    worker_data.get('deviceId', ''),
-                    str(worker_data.get('isAllocated', '')),  # Convert to string if necessary
-                    worker_data.get('init', ''),
-                    worker_data.get('workerName', ''),
-                    worker_data.get('dateLastMessageReceived', ''),
-                    worker_data.get('dateLastMessageSent', '')
+                    worker_data.get('origin'),
+                    worker_data.get('deviceId'),
+                    worker_data.get('isAllocated'),
+                    worker_data.get('init'),
+                    worker_data.get('workerName'),
+                    worker_data.get('dateLastMessageReceived'),
+                    worker_data.get('dateLastMessageSent')
                 ).set(is_alive)
         
             except Exception as e:
