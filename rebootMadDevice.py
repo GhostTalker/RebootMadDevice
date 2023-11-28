@@ -5,7 +5,7 @@
 #
 __author__ = "GhostTalker"
 __copyright__ = "Copyright 2023, The GhostTalker project"
-__version__ = "4.2.4"
+__version__ = "4.2.5"
 __status__ = "TEST"
 
 
@@ -152,27 +152,27 @@ class rmdData(object):
             self._worker_data[worker['workerId']] = { 'origin': worker['mitm']['origin'],
                                                       'isAllocated': worker['isAllocated'],
                                                       'deviceId': worker['deviceId'],													  
-                                                      'dateLastMessageReceived': worker['mitm']['dateLastMessageReceived'], 
-                                                      'dateLastMessageSent': worker['mitm']['dateLastMessageSent'],
+                                                      'dateLastMessageReceived': int(worker['mitm']['dateLastMessageReceived'])/1000, 
+                                                      'dateLastMessageSent': int(worker['mitm']['dateLastMessageSent'])/1000,
                                                       'init': worker['mitm']['init'],
                                                       'isAlive': worker['mitm']['isAlive'],
                                                       'workerName': scanner_info.get('workerName', '')}
 
 
     def check_client(self, device, deviceStatusData):
-        self._device_origin = device
+        uuid = device
+        self._device_origin = uuid
 
         # Update data from deviceStatusData in _rmd_data set
-        if any(device['origin'] == self._device_origin for device in deviceStatusData['devices']):
-            device_data = next(device for device in deviceStatusData['devices'] if device['origin'] == self._device_origin)
-            self._rmd_data[self._device_origin]['last_seen'] = device_data['dateLastMessageReceived']
-
+        if any(device['origin'] == uuid for device in deviceStatusData['devices']):
+            device_data = next(device for device in deviceStatusData['devices'] if device['origin'] == uuid)
+            self._rmd_data[self._device_origin]['last_seen'] = int(device_data['dateLastMessageReceived'])/1000
 
             # Analyze DATA of device
             logging.debug("Checking device {} for nessessary reboot.".format(self._device_origin))
-    
+   
             if self.calc_past_min_from_now(self._rmd_data[self._device_origin]['last_seen']) > int(self._proto_timeout):
-                if self.calc_past_min_from_now(self._rmd_data[self._device_origin]['last_reboot_time'])*60 < (int(self._reboot_waittime)):
+                if self.calc_past_min_from_now(self._rmd_data[self._device_origin]['last_reboot_time']) < (int(self._reboot_waittime)):
                     self._rmd_data[self._device_origin]['reboot_nessessary'] = 'rebooting'
                     ## set led status warn if enabled
                     try:
@@ -253,7 +253,7 @@ class rmdData(object):
 
         for device in list(self._rmd_data):
             if str(self._rmd_data[device]['reboot_nessessary']) == 'rebooting': 
-                rebootedDevicedList.append({'device': device, 'area': self._rmd_data[device]['area_name'], 'last_seen': self.timestamp_to_readable_datetime(self._rmd_data[device]['last_seen']), 'offline_minutes': self.calc_past_min_from_now(self._rmd_data[device]['last_seen']), 'count': self._rmd_data[device]['reboot_count'], 'last_reboot_time': self.timestamp_to_readable_datetime(self._rmd_data[device]['last_reboot_time']), 'reboot_ago_min': self.calc_past_min_from_now(self._rmd_data[device]['last_reboot_time']), 'type': self._rmd_data[device]['reboot_type']})
+                rebootedDevicedList.append({'device': device, 'last_seen': self.timestamp_to_readable_datetime(self._rmd_data[device]['last_seen']), 'offline_minutes': self.calc_past_min_from_now(self._rmd_data[device]['last_seen']), 'count': self._rmd_data[device]['reboot_count'], 'last_reboot_time': self.timestamp_to_readable_datetime(self._rmd_data[device]['last_reboot_time']), 'reboot_ago_min': self.calc_past_min_from_now(self._rmd_data[device]['last_reboot_time']), 'type': self._rmd_data[device]['reboot_type']})
 
                 # Update no_data time and existing Discord messages
                 if self._rmd_data[device]['webhook_id'] != 0:
@@ -261,10 +261,10 @@ class rmdData(object):
                         self.discord_message(device)
 
         if not rebootedDevicedList:
-            self.printTable([{'device': '-','area': '-','last_seen': '-','offline_minutes': '-','count': '-','last_reboot_time': '-','reboot_ago_min': '-','type': '-'}], ['device','area','last_seen','offline_minutes','count','last_reboot_time','reboot_ago_min','type'])
+            self.printTable([{'device': '-','last_seen': '-','offline_minutes': '-','count': '-','last_reboot_time': '-','reboot_ago_min': '-','type': '-'}], ['device','last_seen','offline_minutes','count','last_reboot_time','reboot_ago_min','type'])
             logging.info("")
         else:
-            self.printTable(rebootedDevicedList, ['device','area','last_seen','offline_minutes','count','last_reboot_time','reboot_ago_min','type'])
+            self.printTable(rebootedDevicedList, ['device','last_seen','offline_minutes','count','last_reboot_time','reboot_ago_min','type'])
             logging.info("")
 
 
@@ -281,13 +281,13 @@ class rmdData(object):
 
         for device in list(self._rmd_data):
             if str(self._rmd_data[device]['reboot_nessessary']) == 'True':
-                badDevicedList.append({'device': device, 'area': self._rmd_data[device]['area_name'], 'last_seen': self.timestamp_to_readable_datetime(self._rmd_data[device]['last_seen']), 'offline_minutes': self.calc_past_min_from_now(self._rmd_data[device]['last_seen']), 'count': self._rmd_data[device]['reboot_count'], 'reboot_nessessary': self._rmd_data[device]['reboot_nessessary'], 'force': self._rmd_data[device]['reboot_force']})
+                badDevicedList.append({'device': device,  'last_seen': self.timestamp_to_readable_datetime(self._rmd_data[device]['last_seen']), 'offline_minutes': self.calc_past_min_from_now(self._rmd_data[device]['last_seen']), 'count': self._rmd_data[device]['reboot_count'], 'reboot_nessessary': self._rmd_data[device]['reboot_nessessary'], 'force': self._rmd_data[device]['reboot_force']})
 
         if not badDevicedList:
-            self.printTable([{'device': '-','area': '-','last_seen': '-','offline_minutes': '-','count': '-','reboot_nessessary': '-', 'force': '-'}], ['device','area','last_seen','offline_minutes','count','reboot_nessessary','force'])
+            self.printTable([{'device': '-','last_seen': '-','offline_minutes': '-','count': '-','reboot_nessessary': '-', 'force': '-'}], ['device','last_seen','offline_minutes','count','reboot_nessessary','force'])
             logging.info("")
         else:
-            self.printTable(badDevicedList, ['device','area','last_seen','offline_minutes','count','reboot_nessessary','force'])
+            self.printTable(badDevicedList, ['device','last_seen','offline_minutes','count','reboot_nessessary','force'])
             logging.info("")
 
         ## reboot in threads
