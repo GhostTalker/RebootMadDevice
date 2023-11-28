@@ -25,16 +25,16 @@ PROMETHEUS_DEVICE_LOCATION: <value>
 [REBOOTOPTIONS]
 TRY_ADB_FIRST = <True/False>
 TRY_RESTART_MAPPER_FIRST = <True/False>
-# Time in minutes between checking for which devices need to be rebooted (loop).
-SLEEPTIME_BETWEEN_CHECK = 2
-# Time in minutes of not receiving data that must be exceeded to consider a device as one to be rebooted.
-PROTO_TIMEOUT = 10
-# Time in minutes that must elapse between reboots.
-REBOOT_WAITTIME = 15
-# Time in minutes that must be exceeded to force reboot a device.
-FORCE_REBOOT_TIMEOUT =  20
-Time in minutes that must elapse between forced reboots.
-FORCE_REBOOT_WAITTIME = 20
+# Time in seconds between checking for which devices need to be rebooted (loop).
+SLEEPTIME_BETWEEN_CHECK = 10
+# Time in seconds of not receiving data that must be exceeded to consider a device as one to be rebooted.
+PROTO_TIMEOUT = 300
+# Time in seconds that must be exceeded to force reboot a device.
+FORCE_REBOOT_TIMEOUT = 1800
+# Time in seconds that must elapse between forced reboots.
+FORCE_REBOOT_WAITTIME = 3600
+# Time in seconds that must elapse between reboots.
+REBOOT_WAITTIME = 60
 # Time in seconds to sleep between power toggling off and back on.
 OFF_ON_SLEEP = 5
 
