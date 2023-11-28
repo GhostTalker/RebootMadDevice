@@ -5,7 +5,7 @@
 #
 __author__ = "GhostTalker"
 __copyright__ = "Copyright 2023, The GhostTalker project"
-__version__ = "4.2.5"
+__version__ = "4.2.7"
 __status__ = "TEST"
 
 
@@ -152,27 +152,26 @@ class rmdData(object):
             self._worker_data[worker['workerId']] = { 'origin': worker['mitm']['origin'],
                                                       'isAllocated': worker['isAllocated'],
                                                       'deviceId': worker['deviceId'],													  
-                                                      'dateLastMessageReceived': int(worker['mitm']['dateLastMessageReceived'])/1000, 
-                                                      'dateLastMessageSent': int(worker['mitm']['dateLastMessageSent'])/1000,
+                                                      'dateLastMessageReceived': worker['mitm']['dateLastMessageReceived'], 
+                                                      'dateLastMessageSent': worker['mitm']['dateLastMessageSent'],
                                                       'init': worker['mitm']['init'],
                                                       'isAlive': worker['mitm']['isAlive'],
                                                       'workerName': scanner_info.get('workerName', '')}
 
 
     def check_client(self, device, deviceStatusData):
-        uuid = device
-        self._device_origin = uuid
+        self._device_origin = device
 
         # Update data from deviceStatusData in _rmd_data set
-        if any(device['origin'] == uuid for device in deviceStatusData['devices']):
-            device_data = next(device for device in deviceStatusData['devices'] if device['origin'] == uuid)
-            self._rmd_data[self._device_origin]['last_seen'] = int(device_data['dateLastMessageReceived'])/1000
+        if any(device['origin'] == self._device_origin for device in deviceStatusData['devices']):
+            device_data = next(device for device in deviceStatusData['devices'] if device['origin'] == self._device_origin)
+            self._rmd_data[self._device_origin]['last_seen'] = device_data['dateLastMessageReceived']
 
             # Analyze DATA of device
             logging.debug("Checking device {} for nessessary reboot.".format(self._device_origin))
-   
-            if self.calc_past_min_from_now(self._rmd_data[self._device_origin]['last_seen']) > int(self._proto_timeout):
-                if self.calc_past_min_from_now(self._rmd_data[self._device_origin]['last_reboot_time']) < (int(self._reboot_waittime)):
+ 
+            if self.calc_past_sec_from_now(self._rmd_data[self._device_origin]['last_seen']) > int(self._proto_timeout):
+                if self.calc_past_min_from_now(self._rmd_data[self._device_origin]['last_reboot_time'])*60 < (int(self._reboot_waittime)):
                     self._rmd_data[self._device_origin]['reboot_nessessary'] = 'rebooting'
                     ## set led status warn if enabled
                     try:
@@ -184,7 +183,7 @@ class rmdData(object):
     
                 else:						
                     self._rmd_data[self._device_origin]['reboot_nessessary'] = True
-                    if self.calc_past_min_from_now(self._rmd_data[self._device_origin]['last_seen']) > int(self._force_reboot_timeout) or eval(self._try_adb_first) is False: 
+                    if self.calc_past_sec_from_now(self._rmd_data[self._device_origin]['last_seen']) > int(self._force_reboot_timeout) or eval(self._try_adb_first) is False: 
                         self._rmd_data[self._device_origin]['reboot_force'] = True
     
                     ## set led status critical if enabled
@@ -281,7 +280,7 @@ class rmdData(object):
 
         for device in list(self._rmd_data):
             if str(self._rmd_data[device]['reboot_nessessary']) == 'True':
-                badDevicedList.append({'device': device,  'last_seen': self.timestamp_to_readable_datetime(self._rmd_data[device]['last_seen']), 'offline_minutes': self.calc_past_min_from_now(self._rmd_data[device]['last_seen']), 'count': self._rmd_data[device]['reboot_count'], 'reboot_nessessary': self._rmd_data[device]['reboot_nessessary'], 'force': self._rmd_data[device]['reboot_force']})
+                badDevicedList.append({'device': device, 'last_seen': self.timestamp_to_readable_datetime(self._rmd_data[device]['last_seen']), 'offline_minutes': self.calc_past_min_from_now(self._rmd_data[device]['last_seen']), 'count': self._rmd_data[device]['reboot_count'], 'reboot_nessessary': self._rmd_data[device]['reboot_nessessary'], 'force': self._rmd_data[device]['reboot_force']})
 
         if not badDevicedList:
             self.printTable([{'device': '-','last_seen': '-','offline_minutes': '-','count': '-','reboot_nessessary': '-', 'force': '-'}], ['device','last_seen','offline_minutes','count','reboot_nessessary','force'])
@@ -317,7 +316,7 @@ class rmdData(object):
         self._rmd_data[DEVICE_ORIGIN_TO_REBOOT]['reboot_count'] = self._rmd_data[DEVICE_ORIGIN_TO_REBOOT]['reboot_count'] + 1
         self._rmd_data[DEVICE_ORIGIN_TO_REBOOT]['last_reboot_time'] = self.makeTimestamp()
 
-        if self._rmd_data[DEVICE_ORIGIN_TO_REBOOT]['reboot_force'] and self.calc_past_min_from_now(self._rmd_data[DEVICE_ORIGIN_TO_REBOOT]['last_reboot_forced_time']) > int(self._force_reboot_waittime):
+        if self._rmd_data[DEVICE_ORIGIN_TO_REBOOT]['reboot_force'] and self.calc_past_min_from_now(self._rmd_data[DEVICE_ORIGIN_TO_REBOOT]['last_reboot_forced_time'])*60 > int(self._force_reboot_waittime):
             self._rmd_data[DEVICE_ORIGIN_TO_REBOOT]['last_reboot_forced_time'] = self.makeTimestamp()
             self.reboot_device_via_power(DEVICE_ORIGIN_TO_REBOOT)
             return
@@ -669,7 +668,7 @@ class rmdData(object):
         logging.debug(self._rmd_data[device_origin]['webhook_id'])
 
         if self._rmd_data[device_origin]['webhook_id'] == 0:
-            data["embeds"][0]["description"] = f"`{device_origin}` did not send useful data for more than `{self.calc_past_min_from_now(self._rmd_data[device_origin]['last_seen'])}` minutes!\nReboot count: `{self._rmd_data[device_origin]['reboot_count']}`"
+            data["embeds"][0]["description"] = f"`{device_origin}` did not send useful data for more than `{self.calc_past_sec_from_now(self._rmd_data[device_origin]['last_seen'])*60}` minutes!\nReboot count: `{self._rmd_data[device_origin]['reboot_count']}`"
             try:
                 result = requests.post(self._discord_webhook_url, json = data, params={"wait": True})
                 result.raise_for_status()
@@ -682,9 +681,9 @@ class rmdData(object):
         else:
             logging.debug('parameter fixed is: ' + str(fixed))
             if not fixed:
-                data["embeds"][0]["description"] = f"`{device_origin}` did not send useful data for more than `{self.calc_past_min_from_now(self._rmd_data[device_origin]['last_seen'])}` minutes!\nReboot count: `{self._rmd_data[device_origin]['reboot_count']}`\nFixed :x:"
+                data["embeds"][0]["description"] = f"`{device_origin}` did not send useful data for more than `{self.calc_past_sec_from_now(self._rmd_data[device_origin]['last_seen'])*60}` minutes!\nReboot count: `{self._rmd_data[device_origin]['reboot_count']}`\nFixed :x:"
             else:
-                data["embeds"][0]["description"] = f"`{device_origin}` did not send useful data for more than `{self.calc_past_min_from_now(self._rmd_data[device_origin]['last_seen'])}` minutes!\nReboot count: `{self._rmd_data[device_origin]['reboot_count']}`\nFixed :white_check_mark:"
+                data["embeds"][0]["description"] = f"`{device_origin}` did not send useful data for more than `{self.calc_past_sec_from_now(self._rmd_data[device_origin]['last_seen'])*60}` minutes!\nReboot count: `{self._rmd_data[device_origin]['reboot_count']}`\nFixed :white_check_mark:"
 
             try:
                 result = requests.patch(self._discord_webhook_url + "/messages/" + str(self._rmd_data[device_origin]["webhook_id"]), json = data)
@@ -798,7 +797,7 @@ class rmdData(object):
 
     ## time calculations and transformation
     def calc_past_min_from_now(self, timestamp):
-        """ calculate time between now and given timestamp """
+        """ calculate time between now and given timestamp in seconds"""
         now = int(time.time())
         if timestamp == None or timestamp == "":
             return 99999
@@ -807,6 +806,17 @@ class rmdData(object):
         diffToNow = int(now) - int(timestamp)
         past_min_from_now = int(diffToNow / 60)
         return int(past_min_from_now)
+
+
+    def calc_past_sec_from_now(self, timestamp):
+        """ calculate time between now and given timestamp in milliseconds """
+        now = int(time.time())
+        if timestamp == None or timestamp == "":
+            return 99999
+        elif int(timestamp)/1000 > int(now):
+            return 0
+        diffToNow = int(now) - int(timestamp)/1000
+        return int(diffToNow)
 
 
     def makeTimestamp(self):
