@@ -183,6 +183,10 @@
           "mappings": [
             {
               "options": {
+                "10.0.0.101:8000": {
+                  "index": 1,
+                  "text": "MiniMAD"
+                },
                 "10.0.0.102:8000": {
                   "index": 0,
                   "text": "GhostMini01"
@@ -996,6 +1000,8 @@
             "axisColorMode": "text",
             "axisLabel": "",
             "axisPlacement": "auto",
+            "axisSoftMax": 10,
+            "axisSoftMin": 0,
             "barAlignment": 0,
             "drawStyle": "line",
             "fillOpacity": 0,
@@ -1047,7 +1053,8 @@
                 "value": 20
               }
             ]
-          }
+          },
+          "unit": "short"
         },
         "overrides": []
       },
@@ -1243,7 +1250,7 @@
               },
               {
                 "id": "custom.width",
-                "value": 161
+                "value": 173
               }
             ]
           },
@@ -1275,7 +1282,7 @@
               },
               {
                 "id": "custom.width",
-                "value": 115
+                "value": 163
               }
             ]
           },
@@ -1354,8 +1361,8 @@
         ]
       },
       "gridPos": {
-        "h": 10,
-        "w": 11,
+        "h": 18,
+        "w": 15,
         "x": 0,
         "y": 27
       },
@@ -1433,21 +1440,6 @@
           "legendFormat": "__auto",
           "range": false,
           "refId": "D"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${DS_PROMETHEUS}"
-          },
-          "editorMode": "builder",
-          "exemplar": false,
-          "expr": "rmd_metric_device_workstep{device=~\"$DeviceName\", instance=~\"$InstanceName\"}",
-          "format": "table",
-          "hide": false,
-          "instant": true,
-          "legendFormat": "__auto",
-          "range": false,
-          "refId": "E"
         },
         {
           "datasource": {
@@ -1551,155 +1543,6 @@
         }
       ],
       "type": "table"
-    },
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${DS_PROMETHEUS}"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "custom": {
-            "align": "center",
-            "cellOptions": {
-              "type": "auto"
-            },
-            "inspect": false
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "red",
-                "value": 80
-              }
-            ]
-          }
-        },
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "workerId"
-            },
-            "properties": [
-              {
-                "id": "custom.width",
-                "value": 185
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "isAlive"
-            },
-            "properties": [
-              {
-                "id": "custom.width",
-                "value": 92
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "isAllocated"
-            },
-            "properties": [
-              {
-                "id": "custom.width"
-              }
-            ]
-          }
-        ]
-      },
-      "gridPos": {
-        "h": 10,
-        "w": 13,
-        "x": 11,
-        "y": 27
-      },
-      "id": 10,
-      "options": {
-        "cellHeight": "sm",
-        "footer": {
-          "countRows": false,
-          "fields": "",
-          "reducer": [
-            "sum"
-          ],
-          "show": false
-        },
-        "showHeader": true,
-        "sortBy": [
-          {
-            "desc": false,
-            "displayName": "origin"
-          }
-        ]
-      },
-      "pluginVersion": "10.0.2",
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${DS_PROMETHEUS}"
-          },
-          "editorMode": "builder",
-          "exemplar": false,
-          "expr": "rmd_metric_worker{instance=~\"$InstanceName\"}",
-          "format": "table",
-          "hide": false,
-          "instant": true,
-          "legendFormat": "__auto",
-          "range": false,
-          "refId": "A"
-        }
-      ],
-      "title": "Rotom Worker Status",
-      "transformations": [
-        {
-          "id": "organize",
-          "options": {
-            "excludeByName": {
-              "Time": true,
-              "__name__": true,
-              "dateLastMessageSent": true,
-              "deviceId": true,
-              "instance": true,
-              "job": true
-            },
-            "indexByName": {
-              "Time": 5,
-              "Value": 3,
-              "__name__": 6,
-              "dateLastMessageReceived": 7,
-              "dateLastMessageSent": 8,
-              "deviceId": 9,
-              "init": 10,
-              "instance": 11,
-              "isAllocated": 4,
-              "job": 12,
-              "origin": 0,
-              "workerId": 1,
-              "workerName": 2
-            },
-            "renameByName": {
-              "Value": "isAlive"
-            }
-          }
-        }
-      ],
-      "type": "table"
     }
   ],
   "refresh": "10s",
@@ -1759,13 +1602,13 @@
     ]
   },
   "time": {
-    "from": "now-12h",
+    "from": "now-24h",
     "to": "now"
   },
   "timepicker": {},
   "timezone": "browser",
   "title": "RebootMadDevice - Stats",
   "uid": "c0292d44-7f5f-4ca9-bba8-3e52716c5005",
-  "version": 20,
+  "version": 30,
   "weekStart": "saturday"
 }
