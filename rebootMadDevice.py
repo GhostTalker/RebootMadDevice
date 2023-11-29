@@ -5,7 +5,7 @@
 #
 __author__ = "GhostTalker"
 __copyright__ = "Copyright 2023, The GhostTalker project"
-__version__ = "4.2.7"
+__version__ = "4.2.8"
 __status__ = "TEST"
 
 
@@ -42,7 +42,6 @@ class rmdData(object):
     _discord_webhook_url = _config.get("DISCORD", "WEBHOOK_URL", fallback='')
     _try_adb_first = _config.get("REBOOTOPTIONS", "TRY_ADB_FIRST")
     _try_restart_mapper_first = _config.get("REBOOTOPTIONS", "TRY_RESTART_MAPPER_FIRST", fallback='False')
-    _sleeptime_between_check = _config.get("REBOOTOPTIONS", "SLEEPTIME_BETWEEN_CHECK", fallback=5)
     _proto_timeout = _config.get("REBOOTOPTIONS", "PROTO_TIMEOUT", fallback=300)
     _force_reboot_timeout = _config.get("REBOOTOPTIONS", "FORCE_REBOOT_TIMEOUT", fallback=1800)
     _force_reboot_waittime = _config.get("REBOOTOPTIONS", "FORCE_REBOOT_WAITTIME", fallback=3600)
@@ -119,8 +118,6 @@ class rmdData(object):
         self.rmd_metric_device_reboot_force = prometheus_client.Gauge('rmd_metric_device_reboot_force', 'Device need reboot force', ['device'])
         self.rmd_metric_device_last_reboot_forced_time = prometheus_client.Gauge('rmd_metric_device_last_reboot_forced_time', 'Device last reboot force time', ['device'])
         self.rmd_metric_device_webhook_id = prometheus_client.Gauge('rmd_metric_device_webhook_id', 'Actual status discord webhook id', ['device'])
-        #Prometheus metric for worker
-        self.rmd_metric_worker = prometheus_client.Gauge('rmd_metric_worker', 'worker status',['workerId','origin','isAllocated','init','workerName','dateLastMessageReceived','isAlive'])
 
 
     def getDeviceStatusData(self):
@@ -144,19 +141,6 @@ class rmdData(object):
                 logging.error("Get device data from rotom api failed.")
                 logging.error("sleep 30s and retry")
                 time.sleep(30)  # if request fails, sleep and then retry
-
-
-    def createWorkerData(self, deviceStatusData):
-        for worker in deviceStatusData['workers']:
-            scanner_info = worker.get('scanner', {})  # check if 'scanner' exist for worker
-            self._worker_data[worker['workerId']] = { 'origin': worker['mitm']['origin'],
-                                                      'isAllocated': worker['isAllocated'],
-                                                      'deviceId': worker['deviceId'],													  
-                                                      'dateLastMessageReceived': worker['mitm']['dateLastMessageReceived'], 
-                                                      'dateLastMessageSent': worker['mitm']['dateLastMessageSent'],
-                                                      'init': worker['mitm']['init'],
-                                                      'isAlive': worker['mitm']['isAlive'],
-                                                      'workerName': scanner_info.get('workerName', '')}
 
 
     def check_client(self, device, deviceStatusData):
@@ -252,7 +236,7 @@ class rmdData(object):
 
         for device in list(self._rmd_data):
             if str(self._rmd_data[device]['reboot_nessessary']) == 'rebooting': 
-                rebootedDevicedList.append({'device': device, 'last_seen': self.timestamp_to_readable_datetime(self._rmd_data[device]['last_seen']), 'offline_minutes': self.calc_past_min_from_now(self._rmd_data[device]['last_seen']), 'count': self._rmd_data[device]['reboot_count'], 'last_reboot_time': self.timestamp_to_readable_datetime(self._rmd_data[device]['last_reboot_time']), 'reboot_ago_min': self.calc_past_min_from_now(self._rmd_data[device]['last_reboot_time']), 'type': self._rmd_data[device]['reboot_type']})
+                rebootedDevicedList.append({'device': device, 'last_seen': self.timestamp_to_readable_datetime(self._rmd_data[device]['last_seen']/1000), 'offline_minutes': self.calc_past_min_from_now(self._rmd_data[device]['last_seen']), 'count': self._rmd_data[device]['reboot_count'], 'last_reboot_time': self.timestamp_to_readable_datetime(self._rmd_data[device]['last_reboot_time']), 'reboot_ago_min': self.calc_past_min_from_now(self._rmd_data[device]['last_reboot_time']), 'type': self._rmd_data[device]['reboot_type']})
 
                 # Update no_data time and existing Discord messages
                 if self._rmd_data[device]['webhook_id'] != 0:
@@ -280,7 +264,7 @@ class rmdData(object):
 
         for device in list(self._rmd_data):
             if str(self._rmd_data[device]['reboot_nessessary']) == 'True':
-                badDevicedList.append({'device': device, 'last_seen': self.timestamp_to_readable_datetime(self._rmd_data[device]['last_seen']), 'offline_minutes': self.calc_past_min_from_now(self._rmd_data[device]['last_seen']), 'count': self._rmd_data[device]['reboot_count'], 'reboot_nessessary': self._rmd_data[device]['reboot_nessessary'], 'force': self._rmd_data[device]['reboot_force']})
+                badDevicedList.append({'device': device, 'last_seen': self.timestamp_to_readable_datetime(self._rmd_data[device]['last_seen']/1000), 'offline_minutes': self.calc_past_min_from_now(self._rmd_data[device]['last_seen']), 'count': self._rmd_data[device]['reboot_count'], 'reboot_nessessary': self._rmd_data[device]['reboot_nessessary'], 'force': self._rmd_data[device]['reboot_force']})
 
         if not badDevicedList:
             self.printTable([{'device': '-','last_seen': '-','offline_minutes': '-','count': '-','reboot_nessessary': '-', 'force': '-'}], ['device','last_seen','offline_minutes','count','reboot_nessessary','force'])
@@ -598,21 +582,6 @@ class rmdData(object):
 
             except:
                 logging.error("Error creating prometheus metrics for device {} ".format(device))            
-
-        for worker_id, worker_data in self._worker_data.items():
-            try:
-                self.rmd_metric_worker.labels(
-                    worker_id,
-                    worker_data.get('origin'),
-                    worker_data.get('isAllocated'),
-                    worker_data.get('init'),
-                    worker_data.get('workerName'),
-                    worker_data.get('dateLastMessageReceived'),
-                    worker_data.get('isAlive'),
-                ).set(1)
-        
-            except Exception as e:
-                logging.error(f"Error creating prometheus metrics for worker {worker_id}: {str(e)}")
 
 
     def discord_message(self, device_origin, fixed=False):
