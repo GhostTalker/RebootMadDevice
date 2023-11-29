@@ -70,11 +70,10 @@ Use IP address of the device where RMD is running and PORT is configured in the 
 ```
 - Grafana template added
 - Reboot every device one times within 24 hours (optional)
-- Flygon support only
+- Rotom support only
 - Prometheus metrics
 - support for status LED with WS2812 led stripe
 - support for external status LED via websocket (https://github.com/FabLab-Luenen/McLighting)
-- usable with PowerBoard (Link will follow)
 - usable with external commands
 - usable with web api like sonoff
 - usable with snmp
@@ -89,13 +88,13 @@ Use IP address of the device where RMD is running and PORT is configured in the 
 - client architecture
 - Add waittime for force reboots
 - Add support to restart mapper software instead of reboot
-- manual reboot script for testing (work in progress)
+- manual reboot script for testing
 - Restart for mapper software
 ```
 ### Whats new:
 ```
 - Rotom API support
-- added Rotom API secret
+- added Rotom API secret (will come in future release)
 - Prometheus metrics
 - parallize device request
 ```
