@@ -210,7 +210,6 @@ class rmdData(object):
     
         # API-call for device status
         deviceStatusData = self.getDeviceStatusData()
-        self.createWorkerData(deviceStatusData)
 
         try:    
             threads = []
