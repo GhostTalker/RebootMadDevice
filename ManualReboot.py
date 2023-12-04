@@ -5,7 +5,7 @@
 #
 __author__ = "GhostTalker"
 __copyright__ = "Copyright 2022, The GhostTalker project"
-__version__ = "4.1.2"
+__version__ = "4.1.3"
 __status__ = "TEST"
 
 # generic/built-in and other libs
@@ -124,8 +124,11 @@ class rmdConfig(object):
     def adb_reboot(self, DEVICE_ORIGIN_TO_REBOOT):
         _adbloc = "{}/adb".format(self._adb_path)
         _deviceloc = "{}:{}".format(self._rmd_data[DEVICE_ORIGIN_TO_REBOOT]['ip_address'], self._adb_port)
+
+        print()
+
         try:
-            subprocess.Popen([adbloc, '-s', DEVICELOC, 'reboot'])
+            subprocess.Popen([_adbloc, '-s', _deviceloc, 'reboot'])
             return 0
         except:
             return 1
