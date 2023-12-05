@@ -41,3 +41,6 @@ OFF_ON_SLEEP = 5
 [DISCORD]
 WEBHOOK: <True/False>
 WEBHOOK_URL: https://discordapp.com/api/webhooks/xxxxxxxxxxx
+
+[GPIO]
+GPIO_USAGE: False
