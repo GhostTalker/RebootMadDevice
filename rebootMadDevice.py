@@ -5,7 +5,7 @@
 #
 __author__ = "GhostTalker"
 __copyright__ = "Copyright 2023, The GhostTalker project"
-__version__ = "5.0.1"
+__version__ = "5.0.2"
 __status__ = "TEST"
 
 # generic/built-in and other libs
@@ -49,6 +49,7 @@ _off_on_sleep = _config.get("REBOOTOPTIONS", "OFF_ON_SLEEP", fallback=5)
 _max_poe_reboot = _config.get("REBOOTOPTIONS", "MAX_POE_REBOOT", fallback=10)
 _discord_webhook_enable = _config.getboolean("DISCORD", "WEBHOOK", fallback=False)
 _discord_webhook_url = _config.get("DISCORD", "WEBHOOK_URL", fallback='')
+_gpio_usage = _config.get("GPIO", "GPIO_USAGE", fallback=False
 
 
 def makeTimestamp():
@@ -669,7 +670,7 @@ try:
     _rmd_data = initRMDdata()
 
     # GPIO import libs
-    if eval(rmdItem._gpio_usage):
+    if eval(_gpio_usage):
         logging.debug("import GPIO libs")
         import RPi.GPIO as GPIO
 	
