@@ -5,7 +5,7 @@
 #
 __author__ = "GhostTalker"
 __copyright__ = "Copyright 2022, The GhostTalker project"
-__version__ = "4.1.3"
+__version__ = "5.0.1"
 __status__ = "TEST"
 
 # generic/built-in and other libs
@@ -256,52 +256,6 @@ class rmdConfig(object):
             print("PowerSwitch with POE done.")
             return
 
-        ## PB
-        elif powerSwitchMode == 'PB':
-            print("PowerSwitch with PB starting.")
-            pbport = powerSwitchValue
-            pb_interface = powerSwitchOption
-            pbporton = '/bin/echo -e "on {}" > {}'.format(pbport, pb_interface)
-            pbportoff = '/bin/echo -e "off {}" > {}'.format(pbport, pb_interface)
-            print("send command to PowerBoard for PowerSwitch off")
-            try:
-                subprocess.check_output(pbportoff, shell=True)
-            except subprocess.CalledProcessError:
-                print("failed send command to PowerBoard")
-            time.sleep(int(self._off_on_sleep))
-            print("send command to Powerboard for PowerSwitch on")
-            try:
-                subprocess.check_output(pbporton, shell=True)
-            except subprocess.CalledProcessError:
-                print("failed send command to PowerBoard")
-            print("PowerSwitch with PB done.")
-            return
-
-        ## SNMP
-        elif powerSwitchMode == 'SNMP':
-            print("PowerSwitch with SNMP starting.")
-            switchport = powerSwitchValue
-            snmp_switch_ip_adress = powerSwitchOption.split(";")[0]
-            snmp_community_string = powerSwitchOption.split(";")[1]
-            snmpporton = 'snmpset -v 2c -c {} {} 1.3.6.1.2.1.105.1.1.1.3.1.{} i 1'.format(snmp_community_string,
-                                                                                          snmp_switch_ip_adress,
-                                                                                          switchport)
-            snmpportoff = 'snmpset -v 2c -c {} {} 1.3.6.1.2.1.105.1.1.1.3.1.{} i 2'.format(snmp_community_string,
-                                                                                           snmp_switch_ip_adress,
-                                                                                           switchport)
-            try:
-                subprocess.check_output(snmpportoff, shell=True)
-                print("send SNMP command port OFF to SWITCH")
-            except subprocess.CalledProcessError:
-                print("failed to fire SNMP command")
-            time.sleep(int(self._off_on_sleep))
-            try:
-                subprocess.check_output(snmpporton, shell=True)
-                print("send SNMP command port ON to SWITCH")
-            except subprocess.CalledProcessError:
-                print("failed to fire SNMP command")
-            print("PowerSwitch with SNMP done.")
-            return
         else:
             print("no PowerSwitch configured. Do it manually!!!")
 

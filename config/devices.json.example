@@ -6,6 +6,7 @@
   "ATV05": { "IP_ADDRESS": "192.168.0.5", "MAPPER_MODE": "ATLAS",  "SWITCH_MODE": "CMD",    "SWITCH_OPTION": "",                              "SWITCH_VALUE": "/home/script_to_powercycle.sh",                        "LED_POSITION": "5" },
   "ATV06": { "IP_ADDRESS": "192.168.0.6", "MAPPER_MODE": "ATLAS",  "SWITCH_MODE": "SCRIPT", "SWITCH_OPTION": "",                              "SWITCH_VALUE": "/home/poweron.sh;/home/poweroff.sh",                   "LED_POSITION": "6" },
   "ATV07": { "IP_ADDRESS": "192.168.0.7", "MAPPER_MODE": "ATLAS",  "SWITCH_MODE": "POE",    "SWITCH_OPTION": "",                              "SWITCH_VALUE": "ssh root@switch 'poe port down; sleep 5; poe port up", "LED_POSITION": "7" },
-  "ATV08": { "IP_ADDRESS": "192.168.0.8", "MAPPER_MODE": "ATLAS",  "SWITCH_MODE": "PB",     "SWITCH_OPTION": "/dev/ttyACM0",                  "SWITCH_VALUE": "1",                                                    "LED_POSITION": "8" },
-  "ATV09": { "IP_ADDRESS": "192.168.0.9", "MAPPER_MODE": "ATLAS",  "SWITCH_MODE": "SNMP",   "SWITCH_OPTION": "192.168.0.250;communitystring", "SWITCH_VALUE": "20",                                                   "LED_POSITION": "9" }
+  "ATV08": { "IP_ADDRESS": "192.168.0.7", "MAPPER_MODE": "ATLAS",  "SWITCH_MODE": "POE",    "SWITCH_OPTION": "SWITCHOFF",                     "SWITCH_VALUE": "ssh root@switch 'poe port down; sleep 5; poe port up", "LED_POSITION": "7" },
+  "ATV09": { "IP_ADDRESS": "192.168.0.8", "MAPPER_MODE": "ATLAS",  "SWITCH_MODE": "PB",     "SWITCH_OPTION": "/dev/ttyACM0",                  "SWITCH_VALUE": "1",                                                    "LED_POSITION": "8" },
+  "ATV10": { "IP_ADDRESS": "192.168.0.9", "MAPPER_MODE": "ATLAS",  "SWITCH_MODE": "SNMP",   "SWITCH_OPTION": "192.168.0.250;communitystring", "SWITCH_VALUE": "20",                                                   "LED_POSITION": "9" }
 }
