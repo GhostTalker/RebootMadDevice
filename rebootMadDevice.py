@@ -667,6 +667,11 @@ elif _log_mode == "file":
 try:
     # init RMD data
     _rmd_data = initRMDdata()
+
+    # GPIO import libs
+    if eval(rmdItem._gpio_usage):
+        logging.debug("import GPIO libs")
+        import RPi.GPIO as GPIO
 	
     # Start up the server to expose the metrics.
     if _prometheus_enable:
