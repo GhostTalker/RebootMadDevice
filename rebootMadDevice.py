@@ -49,7 +49,7 @@ _off_on_sleep = _config.get("REBOOTOPTIONS", "OFF_ON_SLEEP", fallback=5)
 _max_poe_reboot = _config.get("REBOOTOPTIONS", "MAX_POE_REBOOT", fallback=10)
 _discord_webhook_enable = _config.getboolean("DISCORD", "WEBHOOK", fallback=False)
 _discord_webhook_url = _config.get("DISCORD", "WEBHOOK_URL", fallback='')
-_gpio_usage = _config.get("GPIO", "GPIO_USAGE", fallback=False)
+_gpio_usage = _config.get("GPIO", "GPIO_USAGE")
 
 
 def makeTimestamp():
