@@ -1,4 +1,4 @@
-# RebootMadDevice V4 - Rotom API version
+# RebootMadDevice V5 - Rotom API version / rework in progress (dont use)
 Reboot ATV devices via ADB or PowerSwitch when device is not responding to Rotom.
 
 Only works with Python 3.6 and above.
