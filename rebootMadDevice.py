@@ -5,7 +5,7 @@
 #
 __author__ = "GhostTalker"
 __copyright__ = "Copyright 2023, The GhostTalker project"
-__version__ = "5.0.2"
+__version__ = "5.1.0"
 __status__ = "TEST"
 
 # generic/built-in and other libs
@@ -115,7 +115,6 @@ def initRMDdata():
                            'switch_mode': _jsondata[device]["SWITCH_MODE"],
                            'switch_option': _jsondata[device]["SWITCH_OPTION"],
                            'switch_value': _jsondata[device]["SWITCH_VALUE"],
-                           'led_position': _jsondata[device]["LED_POSITION"],
                            'device_location': _prometheus_device_location,
 						   'status': 0,
                            'last_seen': None,
@@ -478,15 +477,6 @@ def reboot_device_via_power(DEVICE_ORIGIN_TO_REBOOT):
     ## POE 
     elif powerSwitchMode == 'POE':
         logging.debug("PowerSwitch with POE starting.")
-        if powerSwitchOption == 'SWITCHOFF':
-            if _rmd_data[DEVICE_ORIGIN_TO_REBOOT]['reboot_count'] > _max_poe_reboot:
-                logging.info("Too many reboots via POE. Deactivate POE port on switch.")
-                try:
-                    switchportoff = powerSwitchValue.split(";")[0]
-                    subprocess.check_output(switchportoff, shell=True)
-                    return;
-                except subprocess.CalledProcessError:
-                    logging.error("failed to deaktivate poe port")
         try:
             subprocess.check_output(powerSwitchValue, shell=True)
         except subprocess.CalledProcessError:
@@ -494,9 +484,76 @@ def reboot_device_via_power(DEVICE_ORIGIN_TO_REBOOT):
         logging.debug("PowerSwitch with POE done.")
         return
 
+    ## POE PLUS (UNIFI)
+    elif powerSwitchMode == 'POEPLUS':
+        logging.debug("PowerSwitch with POE PLUS starting.")
+        PORT_ID = powerSwitchOption
+        SWITCH_LOGIN = powerSwitchValue
+        PORT_ON_CMD = "ssh {} 'ubntbox swctrl port set down id {}'".format(SWITCH_LOGIN, PORT_ID)
+        PORT_OFF_CMD = "ssh {} 'ubntbox swctrl port set up id {}'".format(SWITCH_LOGIN, PORT_ID)
+        # Check log for errors
+        try:
+            GREP_LOG_CMD = "ssh {} 'cat /var/log/messages | grep Port | grep {}'".format(SWITCH_LOGIN, PORT_ID)
+            # execute command and get output
+            output_bytes = subprocess.check_output(GREP_LOG_CMD, shell=True)
+            # Decode Byte-String to normal String
+            output_str = output_bytes.decode("utf-8")
+
+            log_entries = []
+            for line in output_str.split('\n'):
+                if not line:
+                    continue
+                match = re.match(r'(\S+\s+\d+\s\d+:\d+:\d+)\s(\S+)\s.*switch:\s(.+)', line)
+                if match:
+                    date_time, host, message = match.groups()
+                    default_year = str(datetime.datetime.now().year)
+                    date_time = f'{date_time} {default_year}'
+                    dt_object = datetime.datetime.strptime(date_time, '%b %d %H:%M:%S %Y')
+                    timestamp_ms = int(dt_object.timestamp() * 1000)
+                    log_entries.append({
+                        'timestamp_ms': timestamp_ms,
+                        'host': host,
+                        'message': message
+                    })
+        except:
+            logging.error("failed to grep log")
+
+        try:
+            # sort list for timestemp_ms desc
+            sorted_entries = sorted(log_entries, key=lambda x: x['timestamp_ms'], reverse=True)
+            # take newest entry after sort
+            latest_entry = sorted_entries[0]
+            
+            if calc_past_sec_from_now(latest_entry[timestamp_ms]) < 3600:
+                #check error in last message
+                latest_message = latest_entry['message']
+                # Suche nach dem gewünschten Teil in der Meldung
+                keyword = "EVT_SW_PoeOverload"
+                if keyword in latest_message:
+                    logging.info(f"Keyword '{keyword}' was found in error logs.")
+                    logging.debug("shutting down port on switch")
+                    subprocess.check_output(PORT_OFF_CMD, shell=True)                    
+                    return
+                else:
+                    logging.debug(f"Keyword '{keyword}' was not found in error logs.")
+        except:
+            logging.error("failed to deaktivate port on switch")
+
+        try:
+            logging.debug("shutting down port on switch")
+            subprocess.check_output(PORT_OFF_CMD, shell=True)
+            logging.debug("waittime before activating port again")
+            time.sleep(int(_off_on_sleep))
+            logging.debug("activating port on switch")
+            subprocess.check_output(PORT_ON_CMD, shell=True)
+        except subprocess.CalledProcessError:
+            logging.error("failed to fire poe port reset")
+        logging.debug("PowerSwitch with POE done.")
+        return
+
     else:
         logging.warning("no PowerSwitch configured. Do it manually!!!")
-			
+
 			
 def init_rmd_info():
     # Prometheus metric for build and running info
@@ -506,9 +563,9 @@ def init_rmd_info():
     rmd_script_running_info.set(0)
 	
     # Prometheus metric for device config
-    rmd_metric_device_info = prometheus_client.Gauge('rmd_metric_device_info', 'Device infos from config', ['device', 'device_location', 'mapper_mode', 'ip_address', 'switch_mode', 'led_position']) 
+    rmd_metric_device_info = prometheus_client.Gauge('rmd_metric_device_info', 'Device infos from config', ['device', 'device_location', 'mapper_mode', 'ip_address', 'switch_mode']) 
     for device, data in _rmd_data.items():
-        rmd_metric_device_info.labels(device, data['device_location'], data['mapper_mode'], data['ip_address'], data['switch_mode'], data['led_position']).set(1)
+        rmd_metric_device_info.labels(device, data['device_location'], data['mapper_mode'], data['ip_address'], data['switch_mode']).set(1)
 
     #Prometheus metric for device
     rmd_metric_device_last_seen = prometheus_client.Gauge('rmd_metric_device_last_seen', 'Device last seen', ['device'])
