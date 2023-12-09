@@ -5,7 +5,7 @@
 #
 __author__ = "GhostTalker"
 __copyright__ = "Copyright 2023, The GhostTalker project"
-__version__ = "5.1.1"
+__version__ = "5.1.4"
 __status__ = "TEST"
 
 # generic/built-in and other libs
@@ -163,7 +163,9 @@ def check_device(device_origin, deviceStatusData):
     # Analyze DATA of device
     logging.debug("Checking device {} for nessessary reboot.".format(device_origin))
     if calc_past_sec_from_now(_rmd_data[device_origin]['last_seen']) > int(_proto_timeout):
-        if _rmd_data[device_origin]['last_reboot_time'] is not None and calc_past_sec_from_now(
+        if _rmd_data[device_origin]['status'] == 3:
+            logging.debut("device is deaktivated")
+        elif _rmd_data[device_origin]['last_reboot_time'] is not None and calc_past_sec_from_now(
                 _rmd_data[device_origin]['last_reboot_time']) < (int(_reboot_waittime)):
             _rmd_data[device_origin]['status'] = 1
         else:
@@ -181,6 +183,7 @@ def check_device(device_origin, deviceStatusData):
 
         # clear webhook_id after fixed message
         if _rmd_data[device_origin]['webhook_id'] != 0:
+            logging.debug("Discord message for device {} will be updated because webhook_id is set to {}".format(device_origin, _rmd_data[device_origin]['webhook_id']))
             discord_message(device_origin, fixed=True)
             _rmd_data[device_origin]['webhook_id'] = 0
 
@@ -248,7 +251,7 @@ def reboot_bad_devices():
     logging.info(f'')
 
     for device in list(_rmd_data):
-        if _rmd_data[device]['status'] == 2:
+        if _rmd_data[device]['status'] >= 2:
             badDevicedList.append(
                 {'device': device, 'last_seen': timestamp_to_readable_datetime(_rmd_data[device]['last_seen']),
                  'offline_minutes': round(calc_past_sec_from_now(_rmd_data[device]['last_seen']) / 60),
@@ -509,6 +512,8 @@ def reboot_device_via_power(DEVICE_ORIGIN_TO_REBOOT):
         SWITCH_LOGIN = powerSwitchValue
         PORT_ON_CMD = "ssh {} 'ubntbox swctrl port set down id {}'".format(SWITCH_LOGIN, PORT_ID)
         PORT_OFF_CMD = "ssh {} 'ubntbox swctrl port set up id {}'".format(SWITCH_LOGIN, PORT_ID)
+        POE_ON_CMD = "ssh {} 'ubntbox swctrl poe set auto id {}'".format(SWITCH_LOGIN, PORT_ID)
+        POE_OFF_CMD = "ssh {} 'ubntbox swctrl poe set off id {}'".format(SWITCH_LOGIN, PORT_ID)
         # Check log for errors
         try:
             GREP_LOG_CMD = "ssh {} 'cat /var/log/messages | grep Port | grep {}'".format(SWITCH_LOGIN, PORT_ID)
@@ -549,23 +554,29 @@ def reboot_device_via_power(DEVICE_ORIGIN_TO_REBOOT):
                 keyword = "EVT_SW_PoeOverload"
                 if keyword in latest_message:
                     logging.info(f"Keyword '{keyword}' was found in error logs.")
-                    logging.debug("shutting down port on switch")
+                    logging.info(f'shutting down port on switch')
                     subprocess.check_output(PORT_OFF_CMD, shell=True)
+                    subprocess.check_output(POE_OFF_CMD, shell=True)
+                    _rmd_data[DEVICE_ORIGIN_TO_REBOOT]['status'] = 3
                     return
                 else:
-                    logging.debug(f"Keyword '{keyword}' was not found in error logs.")
+                    logging.info(f"Keyword '{keyword}' was not found in error logs.")
+                    logging.info(f'enabling port on switch')
+                    subprocess.check_output(PORT_ON_CMD, shell=True)
+                    subprocess.check_output(POE_ON_CMD, shell=True)                    
         except:
-            logging.error("failed to deaktivate port on switch")
+            logging.error("failed to activate/deaktivate port on switch")
 
         try:
             logging.debug("shutting down port on switch")
-            subprocess.check_output(PORT_OFF_CMD, shell=True)
+            subprocess.check_output(POE_OFF_CMD, shell=True)
             logging.debug("waittime before activating port again")
             time.sleep(int(_off_on_sleep))
             logging.debug("activating port on switch")
-            subprocess.check_output(PORT_ON_CMD, shell=True)
+            subprocess.check_output(POE_ON_CMD, shell=True)
         except subprocess.CalledProcessError:
             logging.error("failed to fire poe port reset")
+
         logging.debug("PowerSwitch with POE done.")
         return
 
@@ -710,6 +721,7 @@ def discord_message(device_origin, fixed=False):
     logging.debug(_rmd_data[device_origin]['webhook_id'])
 
     if _rmd_data[device_origin]['webhook_id'] == 0:
+        logging.debug("WebhookID is 0, create new message.")
         data["embeds"][0][
             "description"] = f"`{device_origin}` did not send useful data for more than `{calc_past_sec_from_now(_rmd_data[device_origin]['last_seen']) * 60}` minutes!\nReboot count: `{_rmd_data[device_origin]['reboot_count']}`"
         try:
@@ -722,7 +734,9 @@ def discord_message(device_origin, fixed=False):
         except requests.exceptions.RequestException as err:
             logging.error(err)
     else:
-        logging.debug('parameter fixed is: ' + str(fixed))
+        logging.debug("WebhookID exist, updating discord message for device {}".format(device_origin))
+        logging.debug('WebhookID is: ' + str(_rmd_data[device_origin]["webhook_id"]))
+        logging.debug('Parameter fixed is: ' + str(fixed))
         if not fixed:
             data["embeds"][0][
                 "description"] = f"`{device_origin}` did not send useful data for more than `{calc_past_sec_from_now(_rmd_data[device_origin]['last_seen']) * 60}` minutes!\nReboot count: `{_rmd_data[device_origin]['reboot_count']}`\nFixed :x:"
