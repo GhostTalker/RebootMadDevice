@@ -5,7 +5,7 @@
 #
 __author__ = "GhostTalker"
 __copyright__ = "Copyright 2023, The GhostTalker project"
-__version__ = "5.1.6"
+__version__ = "5.1.7"
 __status__ = "TEST"
 
 # generic/built-in and other libs
@@ -724,15 +724,13 @@ def discord_message(device_origin, fixed=False):
         data["embeds"][0][
             "description"] = f"`{device_origin}` did not send useful data for more than `{calc_past_sec_from_now(_rmd_data[device_origin]['last_seen']) * 60}` minutes!\nReboot count: `{_rmd_data[device_origin]['reboot_count']}`"
         try:
-            logging.debug("This is the webhook call for discord:")
-            logging.debug(json)
-            result = requests.post(_discord_webhook_url, data=data, params={"wait": True})
+            result = requests.post(_discord_webhook_url, json=data, params={"wait": True})
             result.raise_for_status()
             answer = result.json()
             logging.debug(answer)
             _rmd_data[device_origin]["webhook_id"] = answer["id"]
         except requests.exceptions.RequestException as err:
-            logging.error(err)
+            #logging.error(err)
     else:
         logging.debug("WebhookID exist, updating discord message for device {}".format(device_origin))
         logging.debug('WebhookID is: ' + str(_rmd_data[device_origin]["webhook_id"]))
