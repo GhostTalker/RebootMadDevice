@@ -730,7 +730,7 @@ def discord_message(device_origin, fixed=False):
             logging.debug(answer)
             _rmd_data[device_origin]["webhook_id"] = answer["id"]
         except requests.exceptions.RequestException as err:
-            #logging.error(err)
+            logging.error("")
     else:
         logging.debug("WebhookID exist, updating discord message for device {}".format(device_origin))
         logging.debug('WebhookID is: ' + str(_rmd_data[device_origin]["webhook_id"]))
