@@ -5,7 +5,7 @@
 #
 __author__ = "GhostTalker"
 __copyright__ = "Copyright 2023, The GhostTalker project"
-__version__ = "5.1.5"
+__version__ = "5.1.6"
 __status__ = "TEST"
 
 # generic/built-in and other libs
@@ -726,7 +726,7 @@ def discord_message(device_origin, fixed=False):
         try:
             logging.debug("This is the webhook call for discord:")
             logging.debug(json)
-            result = requests.post(_discord_webhook_url, json=data, params={"wait": True})
+            result = requests.post(_discord_webhook_url, data=data, params={"wait": True})
             result.raise_for_status()
             answer = result.json()
             logging.debug(answer)
